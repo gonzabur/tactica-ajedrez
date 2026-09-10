@@ -648,6 +648,67 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   container-type: size;          /* permite medir el hueco real con cqh */
 }
 
+/* --- barra de jugadas ------------------------------------------------------
+   Una sola fila bajo el tablero: flechas a los lados y la notación en medio,
+   que se desplaza sola para mantener a la vista la jugada actual. */
+
+.movebar {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 7px;
+}
+
+.nav-btn {
+  width: 38px; height: 36px; flex: 0 0 38px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 22px; line-height: 1;
+  cursor: pointer;
+  transition: background .15s, color .15s, transform .1s;
+}
+.nav-btn:active:not(:disabled) { transform: scale(.92); }
+.nav-btn:disabled { opacity: .28; cursor: default; }
+
+/* Si te has ido hacia atrás, la flecha de volver se pinta de color: es el
+   camino de vuelta a la posición donde puedes jugar. */
+.movebar.browsing [data-act="fwd"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.moves {
+  flex: 1; min-width: 0; height: 36px;
+  display: flex; align-items: center; gap: 1px;
+  padding: 0 8px;
+  background: var(--surface);
+  border-radius: 10px;
+  overflow-x: auto; overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.moves::-webkit-scrollbar { display: none; }
+
+.mv-num {
+  color: var(--text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  padding: 0 3px 0 6px;
+}
+.mv-num:first-child { padding-left: 0; }
+
+.mv {
+  border: 0; background: transparent;
+  color: var(--text);
+  font-size: 13.5px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 6px; border-radius: 7px;
+  cursor: pointer; white-space: nowrap;
+}
+.mv.on { background: var(--accent); color: var(--accent-ink); }
+
+
 .play-foot { padding-bottom: 4px; }
 
 .status {
@@ -21458,6 +21519,15 @@ window.PuzzlePlayer = (function () {
     var usedHint = false;
     var timers = [];
 
+    // Línea de la partida: cada entrada es una posición ya alcanzada. La 0 es
+    // el planteamiento, antes incluso de la jugada del rival. `viewAt` puede
+    // quedarse atrás cuando se navega con las flechas; mientras eso pasa el
+    // tablero no admite jugadas.
+    var line = [];
+    var viewAt = 0;
+    var awaiting = false;   // ¿toca mover al jugador?
+    var startInfo = { number: 1, side: "w" };
+
     function later(fn, ms) {
       var id = window.setTimeout(fn, ms);
       timers.push(id);
@@ -21498,6 +21568,50 @@ window.PuzzlePlayer = (function () {
       return map;
     }
 
+    /** Apunta en la línea la jugada recién hecha sobre `game` y la pinta. */
+    function record(move, animate) {
+      line.push({
+        fen: game.fen(),
+        san: move.san,
+        from: move.from,
+        to: move.to,
+        checkSq: checkSquare(),
+        mate: game.in_checkmate()
+      });
+      viewAt = line.length - 1;
+      refresh(animate ? [move.from, move.to] : null);
+      if (handlers.onLine) handlers.onLine(line, viewAt);
+    }
+
+    /** Pinta una posición cualquiera de la línea, sin animación. */
+    function renderAt(index) {
+      var step = line[index];
+      board.setPosition(step.fen, {
+        lastMove: step.from ? [step.from, step.to] : null,
+        check: step.checkSq,
+        mate: step.mate
+      });
+    }
+
+    /** El tablero solo acepta jugadas si estás en la posición actual. */
+    function syncInteractive() {
+      if (awaiting && viewAt === line.length - 1) {
+        board.setDests(destsMap());
+        board.setInteractive(true);
+      } else {
+        board.setInteractive(false);
+        board.setDests({});
+      }
+    }
+
+    function goTo(index) {
+      if (index < 0 || index >= line.length || index === viewAt) return;
+      viewAt = index;
+      renderAt(viewAt);
+      syncInteractive();
+      if (handlers.onLine) handlers.onLine(line, viewAt);
+    }
+
     function refresh(animate) {
       board.setPosition(game.fen(), {
         animate: animate || null,
@@ -21507,12 +21621,13 @@ window.PuzzlePlayer = (function () {
     }
 
     function handOverToPlayer() {
-      board.setDests(destsMap());
-      board.setInteractive(true);
+      awaiting = true;
+      syncInteractive();
       if (handlers.onTurn) handlers.onTurn(ply);
     }
 
     function lockBoard() {
+      awaiting = false;
       board.setInteractive(false);
       board.setDests({});
     }
@@ -21527,6 +21642,15 @@ window.PuzzlePlayer = (function () {
       failedHere = false;
       usedHint = false;
 
+      // el número de jugada y el bando salen del propio FEN: hacen falta para
+      // escribir la notación con la numeración real de la partida
+      var fields = next.fen.split(" ");
+      startInfo = { side: fields[1] || "w", number: parseInt(fields[5], 10) || 1 };
+
+      line = [{ fen: game.fen(), san: null, from: null, to: null,
+                checkSq: checkSquare(), mate: false }];
+      viewAt = 0;
+
       // el jugador es el bando que NO mueve en el FEN original
       var playerColor = game.turn() === "w" ? "b" : "w";
       board.setOrientation(playerColor);
@@ -21534,6 +21658,7 @@ window.PuzzlePlayer = (function () {
       board.setPosition(game.fen(), { lastMove: null, check: null });
 
       if (handlers.onLoad) handlers.onLoad(puzzle, playerColor);
+      if (handlers.onLine) handlers.onLine(line, viewAt);
 
       // la jugada que plantea el problema, con un respiro para verla llegar
       later(function () {
@@ -21550,7 +21675,7 @@ window.PuzzlePlayer = (function () {
         promotion: uci.length > 4 ? uci[4] : undefined
       });
       if (!move) return null;
-      refresh(animate ? [move.from, move.to] : null);
+      record(move, animate);
       if (handlers.onMovePlayed) handlers.onMovePlayed(move, game);
       return move;
     }
@@ -21571,7 +21696,9 @@ window.PuzzlePlayer = (function () {
       if (!correct) {
         game.undo();
         failedHere = true;
-        refresh(null);          // devuelve la pieza a su casilla
+        // repintar desde la línea, no desde el motor: así la pieza vuelve a su
+        // casilla sin perder el resaltado de la última jugada buena
+        renderAt(viewAt);
         board.flash(to, "wrong");
         board.shake();
         handOverToPlayer();
@@ -21580,7 +21707,7 @@ window.PuzzlePlayer = (function () {
       }
 
       lockBoard();
-      refresh([move.from, move.to]);
+      record(move, true);
       board.flash(to, "right");
 
       // un mate fuera de la línea principal también da el puzzle por resuelto
@@ -21666,6 +21793,13 @@ window.PuzzlePlayer = (function () {
       hint: hint,
       reveal: reveal,
       fail: fail,
+      back: function () { goTo(viewAt - 1); },
+      forward: function () { goTo(viewAt + 1); },
+      goTo: goTo,
+      get line() { return line; },
+      get viewIndex() { return viewAt; },
+      get atLive() { return viewAt === line.length - 1; },
+      get startInfo() { return startInfo; },
       restart: restart,
       stop: function () { clearTimers(); lockBoard(); finished = true; },
       get puzzle() { return puzzle; },
@@ -22112,6 +22246,11 @@ window.Play = (function () {
     '</header>' +
     '<div class="hud"></div>' +
     '<div class="board-wrap"><div class="board-host"></div></div>' +
+    '<div class="movebar">' +
+      '<button class="nav-btn" data-act="back" aria-label="Jugada anterior">‹</button>' +
+      '<div class="moves"></div>' +
+      '<button class="nav-btn" data-act="fwd" aria-label="Jugada siguiente">›</button>' +
+    "</div>" +
     '<footer class="play-foot">' +
       '<p class="status"></p>' +
       '<div class="actions"></div>' +
@@ -22133,7 +22272,11 @@ window.Play = (function () {
       host: root.querySelector(".board-host"),
       status: root.querySelector(".status"),
       actions: root.querySelector(".actions"),
-      gameover: root.querySelector(".gameover")
+      gameover: root.querySelector(".gameover"),
+      movebar: root.querySelector(".movebar"),
+      moves: root.querySelector(".moves"),
+      back: root.querySelector('[data-act="back"]'),
+      fwd: root.querySelector('[data-act="fwd"]')
     };
 
     els.title.textContent = mode.title;
@@ -22162,15 +22305,31 @@ window.Play = (function () {
       onSolved: onSolved,
       onRevealed: onRevealed,
       onFailed: onRevealed,
+      onLine: renderMoves,
       onProgress: function () { setStatus("¡Bien! Sigue.", "good"); }
     });
+
+    els.back.addEventListener("click", function () { player.back(); });
+    els.fwd.addEventListener("click", function () { player.forward(); });
+    els.moves.addEventListener("click", function (ev) {
+      var btn = ev.target.closest("[data-ply]");
+      if (btn) player.goTo(parseInt(btn.getAttribute("data-ply"), 10));
+    });
+    document.addEventListener("keydown", onKey);
 
     if (mode.timed) startClock(mode.timed);
     renderHud();
     nextPuzzle();
   }
 
+  function onKey(ev) {
+    if (!player) return;
+    if (ev.key === "ArrowLeft") { player.back(); ev.preventDefault(); }
+    if (ev.key === "ArrowRight") { player.forward(); ev.preventDefault(); }
+  }
+
   function stop() {
+    document.removeEventListener("keydown", onKey);
     if (player) player.stop();
     if (clock) { window.clearInterval(clock); clock = null; }
     if (pending) { window.clearTimeout(pending); pending = null; }
@@ -22254,6 +22413,44 @@ window.Play = (function () {
   function deltaText(base, delta) {
     if (delta === undefined || delta === null || !mode.affectsRating) return base;
     return base + "  " + (delta >= 0 ? "+" : "") + delta;
+  }
+
+  /**
+   * Notación de lo jugado, con la numeración real de la partida: el puzzle
+   * empieza a media partida, así que el número sale del FEN y no de cero.
+   * Cada jugada es pulsable para saltar a esa posición.
+   */
+  function renderMoves(line, viewAt) {
+    var info = player.startInfo;
+    var html = "";
+
+    for (var i = 1; i < line.length; i++) {
+      var ply = (i - 1) + (info.side === "b" ? 1 : 0);
+      var white = ply % 2 === 0;
+      var number = info.number + Math.floor(ply / 2);
+
+      // el número solo delante de las blancas; si el puzzle arranca con negras,
+      // la primera jugada se escribe "23…" como es costumbre
+      if (white) html += '<span class="mv-num">' + number + ".</span>";
+      else if (i === 1) html += '<span class="mv-num">' + number + "…</span>";
+
+      html += '<button class="mv' + (i === viewAt ? " on" : "") + '" ' +
+        'data-ply="' + i + '">' + line[i].san + "</button>";
+    }
+
+    // vacío mientras no hay jugadas: son 400 ms y un texto ahí solo parpadea
+    els.moves.innerHTML = html;
+    els.back.disabled = viewAt <= 0;
+    els.fwd.disabled = viewAt >= line.length - 1;
+    // mientras se mira atrás, la flecha de volver se destaca
+    els.movebar.classList.toggle("browsing", viewAt < line.length - 1);
+
+    var actual = els.moves.querySelector(".mv.on");
+    if (actual) {
+      // se centra a mano para no arrastrar el desplazamiento de la página
+      els.moves.scrollLeft =
+        actual.offsetLeft - els.moves.clientWidth / 2 + actual.offsetWidth / 2;
+    }
   }
 
   // --- marcador y controles ---------------------------------------------

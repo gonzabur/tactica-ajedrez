@@ -30,6 +30,13 @@ rating. En equilibrio acierta alrededor del 40% y sirve puzzles unos 75 puntos
 por encima de tu nivel; los números están en `CHALLENGE_*`, en `js/modes.js`,
 con la explicación de por qué son esos.
 
+Bajo el tablero, en todos los modos, hay una barra con la notación de lo
+jugado y flechas para retroceder y avanzar. La numeración es la real de la
+partida de origen, que se saca del FEN. Cada jugada es pulsable para saltar a
+esa posición; mientras se mira hacia atrás el tablero no admite jugadas y la
+flecha de avanzar se pinta de color, que es el camino de vuelta. También
+funcionan las flechas del teclado.
+
 Todo el progreso se guarda en el navegador del dispositivo. No hay cuentas ni
 servidor.
 

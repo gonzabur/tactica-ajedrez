@@ -20,6 +20,15 @@ window.PuzzlePlayer = (function () {
     var usedHint = false;
     var timers = [];
 
+    // Línea de la partida: cada entrada es una posición ya alcanzada. La 0 es
+    // el planteamiento, antes incluso de la jugada del rival. `viewAt` puede
+    // quedarse atrás cuando se navega con las flechas; mientras eso pasa el
+    // tablero no admite jugadas.
+    var line = [];
+    var viewAt = 0;
+    var awaiting = false;   // ¿toca mover al jugador?
+    var startInfo = { number: 1, side: "w" };
+
     function later(fn, ms) {
       var id = window.setTimeout(fn, ms);
       timers.push(id);
@@ -60,6 +69,50 @@ window.PuzzlePlayer = (function () {
       return map;
     }
 
+    /** Apunta en la línea la jugada recién hecha sobre `game` y la pinta. */
+    function record(move, animate) {
+      line.push({
+        fen: game.fen(),
+        san: move.san,
+        from: move.from,
+        to: move.to,
+        checkSq: checkSquare(),
+        mate: game.in_checkmate()
+      });
+      viewAt = line.length - 1;
+      refresh(animate ? [move.from, move.to] : null);
+      if (handlers.onLine) handlers.onLine(line, viewAt);
+    }
+
+    /** Pinta una posición cualquiera de la línea, sin animación. */
+    function renderAt(index) {
+      var step = line[index];
+      board.setPosition(step.fen, {
+        lastMove: step.from ? [step.from, step.to] : null,
+        check: step.checkSq,
+        mate: step.mate
+      });
+    }
+
+    /** El tablero solo acepta jugadas si estás en la posición actual. */
+    function syncInteractive() {
+      if (awaiting && viewAt === line.length - 1) {
+        board.setDests(destsMap());
+        board.setInteractive(true);
+      } else {
+        board.setInteractive(false);
+        board.setDests({});
+      }
+    }
+
+    function goTo(index) {
+      if (index < 0 || index >= line.length || index === viewAt) return;
+      viewAt = index;
+      renderAt(viewAt);
+      syncInteractive();
+      if (handlers.onLine) handlers.onLine(line, viewAt);
+    }
+
     function refresh(animate) {
       board.setPosition(game.fen(), {
         animate: animate || null,
@@ -69,12 +122,13 @@ window.PuzzlePlayer = (function () {
     }
 
     function handOverToPlayer() {
-      board.setDests(destsMap());
-      board.setInteractive(true);
+      awaiting = true;
+      syncInteractive();
       if (handlers.onTurn) handlers.onTurn(ply);
     }
 
     function lockBoard() {
+      awaiting = false;
       board.setInteractive(false);
       board.setDests({});
     }
@@ -89,6 +143,15 @@ window.PuzzlePlayer = (function () {
       failedHere = false;
       usedHint = false;
 
+      // el número de jugada y el bando salen del propio FEN: hacen falta para
+      // escribir la notación con la numeración real de la partida
+      var fields = next.fen.split(" ");
+      startInfo = { side: fields[1] || "w", number: parseInt(fields[5], 10) || 1 };
+
+      line = [{ fen: game.fen(), san: null, from: null, to: null,
+                checkSq: checkSquare(), mate: false }];
+      viewAt = 0;
+
       // el jugador es el bando que NO mueve en el FEN original
       var playerColor = game.turn() === "w" ? "b" : "w";
       board.setOrientation(playerColor);
@@ -96,6 +159,7 @@ window.PuzzlePlayer = (function () {
       board.setPosition(game.fen(), { lastMove: null, check: null });
 
       if (handlers.onLoad) handlers.onLoad(puzzle, playerColor);
+      if (handlers.onLine) handlers.onLine(line, viewAt);
 
       // la jugada que plantea el problema, con un respiro para verla llegar
       later(function () {
@@ -112,7 +176,7 @@ window.PuzzlePlayer = (function () {
         promotion: uci.length > 4 ? uci[4] : undefined
       });
       if (!move) return null;
-      refresh(animate ? [move.from, move.to] : null);
+      record(move, animate);
       if (handlers.onMovePlayed) handlers.onMovePlayed(move, game);
       return move;
     }
@@ -133,7 +197,9 @@ window.PuzzlePlayer = (function () {
       if (!correct) {
         game.undo();
         failedHere = true;
-        refresh(null);          // devuelve la pieza a su casilla
+        // repintar desde la línea, no desde el motor: así la pieza vuelve a su
+        // casilla sin perder el resaltado de la última jugada buena
+        renderAt(viewAt);
         board.flash(to, "wrong");
         board.shake();
         handOverToPlayer();
@@ -142,7 +208,7 @@ window.PuzzlePlayer = (function () {
       }
 
       lockBoard();
-      refresh([move.from, move.to]);
+      record(move, true);
       board.flash(to, "right");
 
       // un mate fuera de la línea principal también da el puzzle por resuelto
@@ -228,6 +294,13 @@ window.PuzzlePlayer = (function () {
       hint: hint,
       reveal: reveal,
       fail: fail,
+      back: function () { goTo(viewAt - 1); },
+      forward: function () { goTo(viewAt + 1); },
+      goTo: goTo,
+      get line() { return line; },
+      get viewIndex() { return viewAt; },
+      get atLive() { return viewAt === line.length - 1; },
+      get startInfo() { return startInfo; },
       restart: restart,
       stop: function () { clearTimers(); lockBoard(); finished = true; },
       get puzzle() { return puzzle; },

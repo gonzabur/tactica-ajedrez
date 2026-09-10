@@ -22,6 +22,11 @@ window.Play = (function () {
     '</header>' +
     '<div class="hud"></div>' +
     '<div class="board-wrap"><div class="board-host"></div></div>' +
+    '<div class="movebar">' +
+      '<button class="nav-btn" data-act="back" aria-label="Jugada anterior">‹</button>' +
+      '<div class="moves"></div>' +
+      '<button class="nav-btn" data-act="fwd" aria-label="Jugada siguiente">›</button>' +
+    "</div>" +
     '<footer class="play-foot">' +
       '<p class="status"></p>' +
       '<div class="actions"></div>' +
@@ -43,7 +48,11 @@ window.Play = (function () {
       host: root.querySelector(".board-host"),
       status: root.querySelector(".status"),
       actions: root.querySelector(".actions"),
-      gameover: root.querySelector(".gameover")
+      gameover: root.querySelector(".gameover"),
+      movebar: root.querySelector(".movebar"),
+      moves: root.querySelector(".moves"),
+      back: root.querySelector('[data-act="back"]'),
+      fwd: root.querySelector('[data-act="fwd"]')
     };
 
     els.title.textContent = mode.title;
@@ -72,15 +81,31 @@ window.Play = (function () {
       onSolved: onSolved,
       onRevealed: onRevealed,
       onFailed: onRevealed,
+      onLine: renderMoves,
       onProgress: function () { setStatus("¡Bien! Sigue.", "good"); }
     });
+
+    els.back.addEventListener("click", function () { player.back(); });
+    els.fwd.addEventListener("click", function () { player.forward(); });
+    els.moves.addEventListener("click", function (ev) {
+      var btn = ev.target.closest("[data-ply]");
+      if (btn) player.goTo(parseInt(btn.getAttribute("data-ply"), 10));
+    });
+    document.addEventListener("keydown", onKey);
 
     if (mode.timed) startClock(mode.timed);
     renderHud();
     nextPuzzle();
   }
 
+  function onKey(ev) {
+    if (!player) return;
+    if (ev.key === "ArrowLeft") { player.back(); ev.preventDefault(); }
+    if (ev.key === "ArrowRight") { player.forward(); ev.preventDefault(); }
+  }
+
   function stop() {
+    document.removeEventListener("keydown", onKey);
     if (player) player.stop();
     if (clock) { window.clearInterval(clock); clock = null; }
     if (pending) { window.clearTimeout(pending); pending = null; }
@@ -164,6 +189,44 @@ window.Play = (function () {
   function deltaText(base, delta) {
     if (delta === undefined || delta === null || !mode.affectsRating) return base;
     return base + "  " + (delta >= 0 ? "+" : "") + delta;
+  }
+
+  /**
+   * Notación de lo jugado, con la numeración real de la partida: el puzzle
+   * empieza a media partida, así que el número sale del FEN y no de cero.
+   * Cada jugada es pulsable para saltar a esa posición.
+   */
+  function renderMoves(line, viewAt) {
+    var info = player.startInfo;
+    var html = "";
+
+    for (var i = 1; i < line.length; i++) {
+      var ply = (i - 1) + (info.side === "b" ? 1 : 0);
+      var white = ply % 2 === 0;
+      var number = info.number + Math.floor(ply / 2);
+
+      // el número solo delante de las blancas; si el puzzle arranca con negras,
+      // la primera jugada se escribe "23…" como es costumbre
+      if (white) html += '<span class="mv-num">' + number + ".</span>";
+      else if (i === 1) html += '<span class="mv-num">' + number + "…</span>";
+
+      html += '<button class="mv' + (i === viewAt ? " on" : "") + '" ' +
+        'data-ply="' + i + '">' + line[i].san + "</button>";
+    }
+
+    // vacío mientras no hay jugadas: son 400 ms y un texto ahí solo parpadea
+    els.moves.innerHTML = html;
+    els.back.disabled = viewAt <= 0;
+    els.fwd.disabled = viewAt >= line.length - 1;
+    // mientras se mira atrás, la flecha de volver se destaca
+    els.movebar.classList.toggle("browsing", viewAt < line.length - 1);
+
+    var actual = els.moves.querySelector(".mv.on");
+    if (actual) {
+      // se centra a mano para no arrastrar el desplazamiento de la página
+      els.moves.scrollLeft =
+        actual.offsetLeft - els.moves.clientWidth / 2 + actual.offsetWidth / 2;
+    }
   }
 
   // --- marcador y controles ---------------------------------------------

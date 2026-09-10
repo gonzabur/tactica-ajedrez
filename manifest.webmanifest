@@ -1,0 +1,17 @@
+{
+  "name": "Táctica — Puzzles de ajedrez",
+  "short_name": "Táctica",
+  "description": "Puzzles de ajedrez sin límite diario: supervivencia, contrarreloj y entrenamiento por temas.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12141a",
+  "theme_color": "#12141a",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Táctica</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Puzzles de ajedrez sin límite diario: supervivencia, contrarreloj y entrenamiento por temas.">
+<meta name="theme-color" content="#12141a">
+
+<!-- Instalable en la pantalla de inicio del iPhone -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Táctica">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="icon" href="assets/icon-192.png">
+
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="loading">
+
+<div id="app"></div>
+
+<div class="boot">
+  <div class="boot-icon">♞</div>
+  <p>Cargando puzzles…</p>
+</div>
+
+<style>
+  /* Pantalla de arranque: se muestra mientras se indexa el banco de puzzles. */
+  .boot {
+    position: fixed; inset: 0;
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px;
+    background: #12141a; color: #6f7788;
+    font-size: 14px;
+  }
+  body.loading .boot { display: flex; }
+  body.loading #app { visibility: hidden; }
+  .boot-icon { font-size: 54px; color: #7fb069; animation: bob 1.4s ease-in-out infinite; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+</style>
+
+<!-- Reglas del ajedrez -->
+<script src="vendor/chess.js"></script>
+
+<!-- Datos generados (tools/build_puzzles.py y tools/build_pieces.py) -->
+<script src="js/pieces.js"></script>
+<script src="data/puzzles.js"></script>
+
+<!-- Aplicación -->
+<script src="js/themes.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/rating.js"></script>
+<script src="js/sound.js"></script>
+<script src="js/data.js"></script>
+<script src="js/board.js"></script>
+<script src="js/puzzle.js"></script>
+<script src="js/modes.js"></script>
+<script src="js/play.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+  // Funcionamiento sin conexión una vez visitada la app.
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () { /* sin conexión, da igual */ });
+    });
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,406 @@
+/**
+ * Navegación y pantallas que no son de juego. La ruta vive en el hash de la
+ * URL, así que el botón "atrás" del móvil funciona sin más.
+ */
+window.App = (function () {
+  var root = null;
+  var currentRoute = "";
+
+  // --- utilidades --------------------------------------------------------
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function screen(className, html) {
+    root.className = "screen " + className;
+    root.innerHTML = html;
+    root.scrollTop = 0;
+  }
+
+  function on(selector, handler) {
+    root.querySelectorAll(selector).forEach(function (el) {
+      el.addEventListener("click", handler);
+    });
+  }
+
+  function go(hash) { window.location.hash = hash; }
+
+  function backHeader(title, hash) {
+    return '<header class="head">' +
+      '<button class="icon-btn" data-nav="' + (hash || "#/") + '" aria-label="Volver">←</button>' +
+      "<h1>" + esc(title) + "</h1><span class=\"head-spacer\"></span></header>";
+  }
+
+  function wireNav() {
+    on("[data-nav]", function (e) {
+      go(e.currentTarget.getAttribute("data-nav"));
+    });
+  }
+
+  // --- inicio ------------------------------------------------------------
+
+  function home() {
+    var st = window.Store.state;
+    var today = window.Store.solvedToday();
+    var streak = window.Store.streak();
+    var records = st.records;
+
+    screen("screen-home",
+      '<header class="home-head">' +
+        "<h1>Táctica</h1>" +
+        '<button class="icon-btn" data-nav="#/ajustes" aria-label="Ajustes">⚙</button>' +
+      "</header>" +
+
+      '<section class="rating-card" data-nav="#/progreso">' +
+        '<div class="rating-main">' +
+          '<span class="rating-label">Tu rating</span>' +
+          '<span class="rating-value">' + st.rating + "</span>" +
+        "</div>" +
+        sparkline(st.stats.history) +
+        '<div class="rating-foot">' +
+          '<span><b>' + today + "</b> hoy</span>" +
+          '<span><b>' + st.stats.solved + "</b> resueltos</span>" +
+          '<span><b>' + streak + "</b> días seguidos</span>" +
+        "</div>" +
+      "</section>" +
+
+      '<div class="mode-grid">' +
+        modeCard("#/supervivencia", "Supervivencia", "De fácil a imposible. 3 fallos.",
+                 "survival", records.survival ? "Récord " + records.survival : "") +
+        modeCard("#/clasificado", "Clasificado", "Puzzles a tu nivel exacto.",
+                 "rated", "") +
+        modeCard("#/temas", "Entrenamiento", "Aperturas, finales, clavadas, mates…",
+                 "themes", "") +
+        modeCard("#/contrarreloj", "Contrarreloj", "Todos los que puedas en 3 o 5 minutos.",
+                 "rush", records.rush3 || records.rush5
+                   ? "Récord " + Math.max(records.rush3, records.rush5) : "") +
+      "</div>" +
+
+      '<button class="link-row" data-nav="#/progreso">Ver mi progreso<span>›</span></button>'
+    );
+    wireNav();
+  }
+
+  function modeCard(hash, title, desc, kind, badge) {
+    return '<button class="mode-card mode-' + kind + '" data-nav="' + hash + '">' +
+      '<span class="mode-icon" aria-hidden="true">' + modeIcon(kind) + "</span>" +
+      '<span class="mode-text"><b>' + esc(title) + "</b><small>" + esc(desc) + "</small></span>" +
+      (badge ? '<span class="mode-badge">' + esc(badge) + "</span>" : "") +
+      "</button>";
+  }
+
+  function modeIcon(kind) {
+    return { survival: "♞", rated: "♛", themes: "♜", rush: "♝" }[kind] || "♟";
+  }
+
+  /** Mini gráfica de la evolución del rating. */
+  function sparkline(history) {
+    if (!history || history.length < 2) {
+      return '<div class="spark empty">Resuelve unos cuantos para ver tu evolución</div>';
+    }
+    var pts = history.slice(-60);
+    var values = pts.map(function (p) { return p.r; });
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    var range = Math.max(40, max - min);
+    var mid = (min + max) / 2;
+    min = mid - range / 2; max = mid + range / 2;
+
+    var w = 100, h = 34;
+    var d = pts.map(function (p, i) {
+      var x = pts.length === 1 ? 0 : (i / (pts.length - 1)) * w;
+      var y = h - ((p.r - min) / (max - min)) * h;
+      return (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+    }).join(" ");
+
+    return '<svg class="spark" viewBox="0 0 ' + w + " " + h + '" preserveAspectRatio="none" ' +
+      'aria-hidden="true"><path d="' + d + '" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  // --- temas -------------------------------------------------------------
+
+  function themes() {
+    var html = backHeader("Entrenamiento");
+    html += '<p class="lead">Elige qué quieres practicar. Cada bloque agrupa puzzles con el mismo motivo, para que el patrón se te quede grabado.</p>';
+
+    window.THEMES.groups.forEach(function (group) {
+      var items = group.themes.filter(function (t) { return window.Data.themeCount(t) > 0; });
+      if (!items.length) return;
+      html += '<section class="theme-group"><h2>' + esc(group.name) + "</h2>" +
+        '<p class="group-hint">' + esc(group.hint) + "</p><div class=\"theme-list\">";
+      items.forEach(function (t) {
+        var stats = window.Store.state.stats.byTheme[t];
+        var total = stats ? stats.ok + stats.ko : 0;
+        html += '<button class="theme-item" data-nav="#/tema/' + t + '">' +
+          "<b>" + esc(window.THEMES.name(t)) + "</b>" +
+          '<span class="theme-meta">' + window.Data.themeCount(t) + " puzzles" +
+          (total ? " · " + Math.round(stats.ok / total * 100) + "% acierto" : "") +
+          "</span></button>";
+      });
+      html += "</div></section>";
+    });
+
+    screen("screen-list", html);
+    wireNav();
+  }
+
+  function themeDetail(themeId) {
+    if (!window.THEMES.labels[themeId]) { go("#/temas"); return; }
+    var stats = window.Store.state.stats.byTheme[themeId];
+    var total = stats ? stats.ok + stats.ko : 0;
+
+    screen("screen-list",
+      backHeader(window.THEMES.name(themeId), "#/temas") +
+      '<p class="lead">' + esc(window.THEMES.desc(themeId)) + "</p>" +
+      '<div class="stat-strip">' +
+        '<div><b>' + window.Data.themeCount(themeId) + "</b><span>disponibles</span></div>" +
+        '<div><b>' + (stats ? stats.ok : 0) + "</b><span>resueltos</span></div>" +
+        '<div><b>' + (total ? Math.round(stats.ok / total * 100) + "%" : "—") + "</b><span>acierto</span></div>" +
+      "</div>" +
+      "<h2 class=\"section-title\">Dificultad</h2>" +
+      '<div class="level-list">' +
+        levelButton(themeId, "facil", "Fácil", "Por debajo de tu nivel, para coger patrón") +
+        levelButton(themeId, "medio", "A tu nivel", "Ajustado a tu rating actual") +
+        levelButton(themeId, "dificil", "Difícil", "Un escalón por encima") +
+        levelButton(themeId, "todos", "Mezclado", "De todo, sin filtrar por dificultad") +
+      "</div>"
+    );
+    wireNav();
+  }
+
+  function levelButton(themeId, level, name, desc) {
+    return '<button class="level-item" data-nav="#/tema/' + themeId + "/" + level + '">' +
+      "<b>" + esc(name) + "</b><small>" + esc(desc) + "</small><span>›</span></button>";
+  }
+
+  // --- contrarreloj ------------------------------------------------------
+
+  function rushMenu() {
+    var r = window.Store.state.records;
+    screen("screen-list",
+      backHeader("Contrarreloj") +
+      '<p class="lead">Tantos puzzles como puedas antes de que se acabe el tiempo. Tres fallos también terminan la partida.</p>' +
+      '<div class="level-list">' +
+        '<button class="level-item" data-nav="#/contrarreloj/3"><b>3 minutos</b>' +
+          "<small>" + (r.rush3 ? "Tu récord: " + r.rush3 : "Sin récord todavía") + "</small><span>›</span></button>" +
+        '<button class="level-item" data-nav="#/contrarreloj/5"><b>5 minutos</b>' +
+          "<small>" + (r.rush5 ? "Tu récord: " + r.rush5 : "Sin récord todavía") + "</small><span>›</span></button>" +
+      "</div>"
+    );
+    wireNav();
+  }
+
+  // --- progreso ----------------------------------------------------------
+
+  function progress() {
+    var st = window.Store.state;
+    var s = st.stats;
+    var total = s.solved + s.failed;
+
+    var themeRows = Object.keys(s.byTheme)
+      .filter(function (t) { return window.THEMES.labels[t] && s.byTheme[t].ok + s.byTheme[t].ko >= 4; })
+      .map(function (t) {
+        var e = s.byTheme[t];
+        return { id: t, n: e.ok + e.ko, pct: Math.round(e.ok / (e.ok + e.ko) * 100) };
+      })
+      .sort(function (a, b) { return a.pct - b.pct; });
+
+    var weakest = themeRows.slice(0, 6);
+    // los fuertes solo tienen sentido si no son los mismos que los débiles
+    var strongest = themeRows.length >= 10
+      ? themeRows.slice().reverse().slice(0, 6)
+      : [];
+
+    screen("screen-list",
+      backHeader("Tu progreso") +
+      '<section class="progress-hero">' +
+        '<div class="rating-value big">' + st.rating + "</div>" +
+        '<div class="rating-label">rating de puzzles</div>' +
+        sparkline(s.history) +
+      "</section>" +
+
+      '<div class="stat-strip">' +
+        "<div><b>" + s.solved + "</b><span>resueltos</span></div>" +
+        "<div><b>" + (total ? Math.round(s.solved / total * 100) + "%" : "—") + "</b><span>acierto</span></div>" +
+        "<div><b>" + window.Store.streak() + "</b><span>días seguidos</span></div>" +
+      "</div>" +
+
+      '<h2 class="section-title">Récords</h2>' +
+      '<div class="stat-strip">' +
+        "<div><b>" + st.records.survival + "</b><span>supervivencia</span></div>" +
+        "<div><b>" + st.records.rush3 + "</b><span>3 min</span></div>" +
+        "<div><b>" + st.records.rush5 + "</b><span>5 min</span></div>" +
+      "</div>" +
+
+      '<h2 class="section-title">Actividad</h2>' + heatmap(s.days) +
+
+      (weakest.length
+        ? '<h2 class="section-title">Dónde flojeas</h2><p class="group-hint">Los temas con menos acierto: aquí es donde más vas a ganar.</p>' + bars(weakest)
+        : '<p class="lead">Cuando lleves unos cuantos puzzles verás aquí en qué temas fallas más.</p>') +
+
+      (strongest.length && strongest[0].pct > 0
+        ? '<h2 class="section-title">Lo que llevas mejor</h2>' + bars(strongest)
+        : "") +
+
+      '<button class="link-row" data-nav="#/ajustes">Ajustes<span>›</span></button>'
+    );
+    wireNav();
+  }
+
+  function bars(rows) {
+    return '<div class="bars">' + rows.map(function (r) {
+      return '<div class="bar-row"><span class="bar-name">' + esc(window.THEMES.name(r.id)) + "</span>" +
+        '<span class="bar-track"><span class="bar-fill" style="width:' + r.pct + '%"></span></span>' +
+        '<span class="bar-pct">' + r.pct + "%</span></div>";
+    }).join("") + "</div>";
+  }
+
+  /** Rejilla de actividad de las últimas 12 semanas. */
+  function heatmap(days) {
+    var cells = [];
+    var d = new Date();
+    d.setHours(12, 0, 0, 0);
+    // retroceder hasta el lunes de hace 11 semanas
+    var offset = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - offset - 11 * 7);
+
+    for (var w = 0; w < 12; w++) {
+      for (var day = 0; day < 7; day++) {
+        var key = window.Store.todayKey(d);
+        var n = days[key] || 0;
+        var level = n === 0 ? 0 : n < 5 ? 1 : n < 15 ? 2 : n < 30 ? 3 : 4;
+        cells.push('<i class="hm l' + level + '" title="' + key + ": " + n + ' puzzles"></i>');
+        d.setDate(d.getDate() + 1);
+      }
+    }
+    return '<div class="heatmap">' + cells.join("") + "</div>" +
+      '<div class="heatmap-legend"><span>menos</span><i class="hm l0"></i><i class="hm l1"></i>' +
+      '<i class="hm l2"></i><i class="hm l3"></i><i class="hm l4"></i><span>más</span></div>';
+  }
+
+  // --- ajustes -----------------------------------------------------------
+
+  function settings() {
+    var s = window.Store.settings;
+    screen("screen-list",
+      backHeader("Ajustes") +
+      '<div class="switch-list">' +
+        toggle("sound", "Sonido", "Efectos al mover y al acertar", s.sound) +
+        toggle("coords", "Coordenadas", "Letras y números en el borde del tablero", s.coords) +
+      "</div>" +
+
+      '<h2 class="section-title">Tu rating</h2>' +
+      '<p class="group-hint">Si ya sabes más o menos tu nivel, ajústalo aquí y la app te servirá puzzles adecuados desde el principio.</p>' +
+      '<div class="rating-set">' +
+        '<button class="btn ghost" data-adj="-100">−100</button>' +
+        '<span class="rating-value" id="rating-now">' + window.Store.state.rating + "</span>" +
+        '<button class="btn ghost" data-adj="100">+100</button>' +
+      "</div>" +
+
+      '<h2 class="section-title">Datos</h2>' +
+      '<button class="btn danger wide" data-act="reset">Borrar todo mi progreso</button>' +
+      '<p class="credits">Puzzles de la base de datos abierta de <b>Lichess</b> (CC0). ' +
+      "Piezas «cburnett» de Colin M. L. Burnett (CC BY-SA 3.0). " +
+      "Reglas de ajedrez con chess.js (BSD).</p>"
+    );
+    wireNav();
+
+    on("[data-toggle]", function (e) {
+      var key = e.currentTarget.getAttribute("data-toggle");
+      window.Store.settings[key] = !window.Store.settings[key];
+      window.Store.save();
+      if (key === "sound") window.Sound.setEnabled(window.Store.settings[key]);
+      e.currentTarget.classList.toggle("on", window.Store.settings[key]);
+      e.currentTarget.setAttribute("aria-checked", String(window.Store.settings[key]));
+    });
+
+    on("[data-adj]", function (e) {
+      var delta = parseInt(e.currentTarget.getAttribute("data-adj"), 10);
+      var next = Math.max(window.Rating.MIN, Math.min(window.Rating.MAX,
+        window.Store.state.rating + delta));
+      window.Store.setRating(next);
+      root.querySelector("#rating-now").textContent = next;
+    });
+
+    on('[data-act="reset"]', function () {
+      if (!window.confirm("Se borrará tu rating, tus récords y todas las estadísticas. ¿Seguro?")) return;
+      window.Store.reset();
+      go("#/");
+    });
+  }
+
+  function toggle(key, title, desc, value) {
+    return '<button class="switch' + (value ? " on" : "") + '" role="switch" ' +
+      'aria-checked="' + !!value + '" data-toggle="' + key + '">' +
+      '<span class="switch-text"><b>' + esc(title) + "</b><small>" + esc(desc) + "</small></span>" +
+      '<span class="switch-knob" aria-hidden="true"></span></button>';
+  }
+
+  // --- enrutado ----------------------------------------------------------
+
+  function modeForRoute(route) {
+    var parts = route.replace(/^#\/?/, "").split("/");
+    switch (parts[0]) {
+      case "clasificado": return window.Modes.rated();
+      case "supervivencia": return window.Modes.survival();
+      case "contrarreloj":
+        return parts[1] ? window.Modes.rush(parseInt(parts[1], 10)) : null;
+      case "tema":
+        return parts[2] ? window.Modes.theme(parts[1], parts[2]) : null;
+      default: return null;
+    }
+  }
+
+  function route() {
+    var hash = window.location.hash || "#/";
+    currentRoute = hash;
+    window.Play.stop();
+
+    var mode = modeForRoute(hash);
+    if (mode) { window.Play.start(root, mode); return; }
+
+    var parts = hash.replace(/^#\/?/, "").split("/");
+    switch (parts[0]) {
+      case "temas": themes(); break;
+      case "tema": themeDetail(parts[1]); break;
+      case "contrarreloj": rushMenu(); break;
+      case "progreso": progress(); break;
+      case "ajustes": settings(); break;
+      default: home();
+    }
+  }
+
+  function replay() {
+    var mode = modeForRoute(currentRoute);
+    if (mode) window.Play.start(root, mode);
+    else go("#/");
+  }
+
+  function boot() {
+    root = document.getElementById("app");
+    try {
+      window.Data.init();
+    } catch (e) {
+      root.innerHTML = '<div class="fatal"><h1>No se han podido cargar los puzzles</h1>' +
+        "<p>" + esc(e.message) + "</p></div>";
+      return;
+    }
+
+    window.Sound.setEnabled(window.Store.settings.sound);
+    document.addEventListener("pointerdown", function once() {
+      window.Sound.unlock();
+      document.removeEventListener("pointerdown", once);
+    });
+
+    window.addEventListener("hashchange", route);
+    route();
+    document.body.classList.remove("loading");
+  }
+
+  return { boot: boot, replay: replay, route: route };
+})();
+
+document.addEventListener("DOMContentLoaded", window.App.boot);

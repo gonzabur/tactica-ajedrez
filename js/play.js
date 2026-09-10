@@ -1,0 +1,299 @@
+/**
+ * Pantalla de juego. Es la misma para todos los modos: recibe un objeto de
+ * modes.js y se limita a pedirle puzzles, contarle resultados y pintar su
+ * marcador.
+ */
+window.Play = (function () {
+  var mode = null;
+  var board = null;
+  var player = null;
+  var root = null;
+  var els = {};
+  var clock = null;
+  var secondsLeft = 0;
+  var over = false;
+  var pending = null;      // temporizador del salto al siguiente puzzle
+
+  var TEMPLATE =
+    '<header class="play-head">' +
+      '<button class="icon-btn" data-act="exit" aria-label="Salir">←</button>' +
+      '<div class="play-title"><h1></h1><span class="sub"></span></div>' +
+      '<button class="icon-btn" data-act="flip" aria-label="Girar el tablero">⇅</button>' +
+    '</header>' +
+    '<div class="hud"></div>' +
+    '<div class="board-wrap"><div class="board-host"></div></div>' +
+    '<footer class="play-foot">' +
+      '<p class="status"></p>' +
+      '<div class="actions"></div>' +
+    '</footer>' +
+    '<div class="gameover" hidden></div>';
+
+  function start(container, selected) {
+    stop();
+    mode = selected;
+    over = false;
+    root = container;
+    root.className = "screen screen-play";
+    root.innerHTML = TEMPLATE;
+
+    els = {
+      title: root.querySelector(".play-title h1"),
+      sub: root.querySelector(".play-title .sub"),
+      hud: root.querySelector(".hud"),
+      host: root.querySelector(".board-host"),
+      status: root.querySelector(".status"),
+      actions: root.querySelector(".actions"),
+      gameover: root.querySelector(".gameover")
+    };
+
+    els.title.textContent = mode.title;
+    els.sub.textContent = mode.subtitle || "";
+
+    root.querySelector('[data-act="exit"]').addEventListener("click", function () {
+      window.location.hash = "#/";
+    });
+    root.querySelector('[data-act="flip"]').addEventListener("click", function () {
+      board.flip();
+    });
+
+    board = window.Board.create(els.host, {
+      coords: window.Store.settings.coords,
+      onMove: function (from, to, promo) {
+        window.Sound.unlock();
+        player.onUserMove(from, to, promo);
+      }
+    });
+
+    player = window.PuzzlePlayer.create(board, {
+      onLoad: onPuzzleLoad,
+      onMovePlayed: onMovePlayed,
+      onWrong: onWrong,
+      onSolved: onSolved,
+      onRevealed: onRevealed,
+      onProgress: function () { setStatus("¡Bien! Sigue.", "good"); }
+    });
+
+    if (mode.timed) startClock(mode.timed);
+    renderHud();
+    nextPuzzle();
+  }
+
+  function stop() {
+    if (player) player.stop();
+    if (clock) { window.clearInterval(clock); clock = null; }
+    if (pending) { window.clearTimeout(pending); pending = null; }
+    player = null;
+    board = null;
+    mode = null;
+  }
+
+  // --- ciclo de puzzles --------------------------------------------------
+
+  function nextPuzzle() {
+    var puzzle = mode.next();
+    if (!puzzle) { finish({ reason: "sin-puzzles" }); return; }
+    player.load(puzzle);
+  }
+
+  function onPuzzleLoad(puzzle, color) {
+    setStatus(color === "w" ? "Juegan las blancas" : "Juegan las negras", "turn " + color);
+    renderActions("playing");
+    renderHud();
+  }
+
+  function onMovePlayed(move, game) {
+    if (!window.Store.settings.sound) return;
+    if (game.in_check()) window.Sound.check();
+    else if (move.captured) window.Sound.capture();
+    else window.Sound.move();
+  }
+
+  function onWrong() {
+    if (window.Store.settings.sound) window.Sound.wrong();
+    if (mode.allowRetry) {
+      setStatus("No es esa. Prueba otra vez.", "bad");
+      return;
+    }
+    setStatus("Fallo. La jugada era esta.", "bad");
+    player.revealNext();
+  }
+
+  function onSolved(res) {
+    if (window.Store.settings.sound) window.Sound.right();
+    var outcome = mode.result(res) || {};
+    renderHud();
+
+    if (outcome.over) { finish(mode.finish ? mode.finish() : {}); return; }
+
+    if (res.clean) {
+      setStatus(deltaText("¡Resuelto!", outcome.delta), "good");
+    } else {
+      setStatus(deltaText("Resuelto, pero con ayuda.", outcome.delta), "meh");
+    }
+
+    if (mode.autoNext) {
+      pending = window.setTimeout(nextPuzzle, 650);
+    } else {
+      renderActions("solved", res.puzzle);
+    }
+  }
+
+  /** Tras enseñar la solución: cuenta el fallo y sigue. */
+  function onRevealed(puzzle) {
+    var outcome = mode.result({ puzzle: puzzle, clean: false, failed: true }) || {};
+    renderHud();
+    if (outcome.over) { finish(mode.finish ? mode.finish() : {}); return; }
+    if (mode.autoNext) {
+      pending = window.setTimeout(nextPuzzle, 500);
+    } else {
+      setStatus("Esta era la solución.", "bad");
+      renderActions("solved", puzzle);
+    }
+  }
+
+  function deltaText(base, delta) {
+    if (delta === undefined || delta === null || !mode.affectsRating) return base;
+    return base + "  " + (delta >= 0 ? "+" : "") + delta;
+  }
+
+  // --- marcador y controles ---------------------------------------------
+
+  function renderHud() {
+    var items = mode.hud ? mode.hud() : [];
+    if (mode.timed) {
+      items = [{ label: "Tiempo", value: formatTime(secondsLeft), danger: secondsLeft <= 15 }]
+        .concat(items);
+    }
+    els.hud.innerHTML = items.map(function (item) {
+      return '<div class="hud-item' + (item.danger ? " danger" : "") + '">' +
+        '<span class="hud-label">' + item.label + "</span>" +
+        '<span class="hud-value">' + item.value + "</span>" +
+        (item.trend ? '<span class="hud-trend ' + (item.trend >= 0 ? "up" : "down") + '">' +
+          (item.trend >= 0 ? "+" : "") + item.trend + "</span>" : "") +
+        "</div>";
+    }).join("");
+  }
+
+  function renderActions(phase, puzzle) {
+    var html = "";
+    if (phase === "playing") {
+      if (mode.allowHint) {
+        html += '<button class="btn ghost" data-act="hint">Pista</button>';
+        html += '<button class="btn ghost" data-act="solution">Ver solución</button>';
+      } else {
+        html += '<span class="hint-note">Sin ayudas en este modo</span>';
+      }
+    } else if (phase === "solved") {
+      html += '<button class="btn primary wide" data-act="next">Siguiente</button>';
+    }
+    els.actions.innerHTML = html;
+
+    if (phase === "solved" && puzzle) renderPuzzleInfo(puzzle);
+
+    els.actions.querySelectorAll("[data-act]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var act = btn.getAttribute("data-act");
+        if (act === "hint") { player.hint(); setStatus("Mueve esa pieza.", "meh"); }
+        if (act === "solution") { player.reveal(); }
+        if (act === "next") { nextPuzzle(); }
+      });
+    });
+  }
+
+  /** Al resolver, se muestran los motivos del puzzle: es donde se aprende. */
+  function renderPuzzleInfo(puzzle) {
+    var interesting = puzzle.themes.filter(function (t) {
+      return window.THEMES.labels[t];
+    }).slice(0, 3);
+    if (!interesting.length) return;
+
+    var info = document.createElement("div");
+    info.className = "puzzle-info";
+    info.innerHTML =
+      '<div class="chips">' + interesting.map(function (t) {
+        return '<span class="chip">' + window.THEMES.name(t) + "</span>";
+      }).join("") + '<span class="chip muted">' + puzzle.rating + "</span></div>" +
+      '<p class="theme-desc">' + window.THEMES.desc(interesting[0]) + "</p>";
+    els.actions.parentNode.insertBefore(info, els.actions);
+  }
+
+  function setStatus(text, kind) {
+    els.status.textContent = text;
+    els.status.className = "status " + (kind || "");
+    var info = root.querySelector(".puzzle-info");
+    if (info) info.remove();
+  }
+
+  // --- reloj -------------------------------------------------------------
+
+  function startClock(seconds) {
+    secondsLeft = seconds;
+    clock = window.setInterval(function () {
+      secondsLeft--;
+      if (secondsLeft <= 5 && secondsLeft > 0 && window.Store.settings.sound) window.Sound.tick();
+      renderHud();
+      if (secondsLeft <= 0) {
+        window.clearInterval(clock);
+        clock = null;
+        player.stop();
+        finish(mode.finish ? mode.finish() : {}, "Se acabó el tiempo");
+      }
+    }, 1000);
+  }
+
+  function formatTime(total) {
+    var m = Math.floor(total / 60), s = total % 60;
+    return m + ":" + String(s).padStart(2, "0");
+  }
+
+  // --- fin de partida ----------------------------------------------------
+
+  function finish(summary, headline) {
+    if (over) return;
+    over = true;
+    if (clock) { window.clearInterval(clock); clock = null; }
+    if (pending) { window.clearTimeout(pending); pending = null; }
+    player.stop();
+    board.setInteractive(false);
+
+    if (window.Store.settings.sound) {
+      if (summary.record) window.Sound.win(); else window.Sound.lose();
+    }
+    window.Store.save();
+
+    var rows = [];
+    if (summary.score !== undefined) rows.push(["Resueltos", summary.score]);
+    if (summary.bestStreak) rows.push(["Mejor racha", summary.bestStreak]);
+    if (summary.topRating) rows.push(["Dificultad alcanzada", summary.topRating]);
+    if (summary.best !== undefined) rows.push(["Tu récord", summary.best]);
+
+    els.gameover.hidden = false;
+    els.gameover.innerHTML =
+      '<div class="gameover-card">' +
+        (summary.record ? '<div class="record-badge">¡Récord nuevo!</div>' : "") +
+        "<h2>" + (headline || "Fin de la partida") + "</h2>" +
+        '<div class="big-score">' + (summary.score !== undefined ? summary.score : "") + "</div>" +
+        '<dl class="summary">' + rows.map(function (r) {
+          return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
+        }).join("") + "</dl>" +
+        '<div class="gameover-actions">' +
+          '<button class="btn primary wide" data-act="again">Otra vez</button>' +
+          '<button class="btn ghost wide" data-act="home">Volver al inicio</button>' +
+        "</div>" +
+      "</div>";
+
+    els.gameover.querySelector('[data-act="again"]').addEventListener("click", function () {
+      window.App.replay();
+    });
+    els.gameover.querySelector('[data-act="home"]').addEventListener("click", function () {
+      window.location.hash = "#/";
+    });
+  }
+
+  return {
+    start: start,
+    stop: stop,
+    /** Puzzle en curso. Útil para depurar desde la consola. */
+    get puzzle() { return player ? player.puzzle : null; }
+  };
+})();

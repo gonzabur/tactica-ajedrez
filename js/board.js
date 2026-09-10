@@ -9,6 +9,24 @@
 window.Board = (function () {
   var FILES = "abcdefgh";
   var COARSE = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  /**
+   * Geometría del arrastre táctil, donde todo tiene que encajar a la vez.
+   *
+   * La pieza se dibuja por encima del dedo para no quedar tapada, y se suelta
+   * donde está la PIEZA, que es con lo que se apunta. Ese alzado no puede ser
+   * grande: con casi una casilla, arrastrar una casilla hacia arriba apenas
+   * movía el dedo (la pieza ya estaba allí), y entonces ningún umbral podía
+   * distinguir ese arrastre de un simple pulso del pulgar.
+   *
+   * Con un alzado de un tercio de casilla las dos cosas conviven:
+   *   · arrastrar una casilla arriba mueve el dedo ~0,65 casillas, de sobra;
+   *   · un pulso de pulgar deja el dedo dentro de la casilla de origen, y ahí
+   *     el gesto se resuelve como toque y no mueve nada.
+   */
+  var LIFT = 0.35;        // alzado de la pieza sobre el dedo, en casillas
+  var DRAG_START = 0.3;   // recorrido para dar el gesto por arrastre
+
+  function liftFor(boardWidth) { return COARSE ? boardWidth / 8 * LIFT : 0; }
 
   function squareName(file, rank) { return FILES[file] + (rank + 1); }
   function fileOf(sq) { return FILES.indexOf(sq[0]); }
@@ -150,9 +168,13 @@ window.Board = (function () {
       marksLayer.innerHTML = "";
       var frag = document.createDocumentFragment();
 
+      // El resaltado se pinta distinto según el color de la casilla: un mismo
+      // amarillo translúcido sobre crema y sobre verde da dos colores que no
+      // se parecen en nada.
       function mark(sq, cls) {
         var el = document.createElement("div");
-        el.className = "mark " + cls;
+        var dark = (fileOf(sq) + rankOf(sq)) % 2 === 0;
+        el.className = "mark " + cls + (dark ? " on-dark" : " on-light");
         place(el, sq);
         frag.appendChild(el);
       }
@@ -219,12 +241,16 @@ window.Board = (function () {
       if (!canMoveFrom(sq)) { deselect(); return; }
       ev.preventDefault();
 
-      if (state.selected === sq) { deselect(); return; }
+      // Si ya estaba elegida, el segundo toque la suelta... pero eso no puede
+      // decidirse aquí: desde una pieza elegida también se empieza a arrastrar.
+      // Se apunta y se resuelve al levantar el dedo.
+      var wasSelected = state.selected === sq;
       select(sq);
 
       drag = {
         from: sq, el: els[sq], pointerId: ev.pointerId,
-        startX: ev.clientX, startY: ev.clientY, active: false, over: null
+        startX: ev.clientX, startY: ev.clientY, active: false, over: null,
+        wasSelected: wasSelected
       };
       try { root.setPointerCapture(ev.pointerId); } catch (e) { /* puntero ya liberado */ }
     }
@@ -232,7 +258,11 @@ window.Board = (function () {
     function onPointerMove(ev) {
       if (!drag || ev.pointerId !== drag.pointerId) return;
       var dx = ev.clientX - drag.startX, dy = ev.clientY - drag.startY;
-      if (!drag.active && Math.abs(dx) + Math.abs(dy) < 6) return;
+      var boardWidth = root.getBoundingClientRect().width;
+      if (!drag.active &&
+          Math.sqrt(dx * dx + dy * dy) < (COARSE ? boardWidth / 8 * DRAG_START : 5)) {
+        return;
+      }
 
       if (!drag.active) {
         drag.active = true;
@@ -243,7 +273,7 @@ window.Board = (function () {
       var rect = root.getBoundingClientRect();
       var size = rect.width / 8;
       // en pantallas táctiles la pieza se levanta para que el dedo no la tape
-      var lift = COARSE ? size * 0.9 : 0;
+      var lift = liftFor(rect.width);
       var x = ev.clientX - rect.left - size / 2;
       var y = ev.clientY - rect.top - size / 2 - lift;
       drag.el.style.transform = "translate(" + (x / size * 100) + "%," + (y / size * 100) + "%)";
@@ -271,12 +301,28 @@ window.Board = (function () {
       var hover = marksLayer.querySelector(".mark.hover");
       if (hover) hover.remove();
 
-      if (!d.active) return;   // fue un toque simple: la casilla queda seleccionada
+      if (!d.active) {
+        // toque simple: elige la pieza, o la suelta si ya lo estaba
+        if (d.wasSelected) deselect();
+        return;
+      }
       d.el.classList.remove("dragging");
       place(d.el, d.from);
 
       var rect = root.getBoundingClientRect();
-      var lift = COARSE ? rect.width / 8 * 0.9 : 0;
+
+      // Si el dedo no ha llegado a salir de la casilla de origen, no hubo
+      // intención de mover: fue un pulso. Esta es la guarda que de verdad
+      // corta las jugadas fantasma, porque mira la geometría del tablero y no
+      // una distancia suelta en píxeles.
+      if (squareAt(ev.clientX, ev.clientY) === d.from) {
+        select(d.from);
+        return;
+      }
+
+      // Se suelta donde está la PIEZA, que es lo que el jugador ve y con lo
+      // que apunta, no donde está el dedo.
+      var lift = liftFor(rect.width);
       var target = squareAt(ev.clientX, ev.clientY - lift);
       if (target && target !== d.from) {
         if (!tryMove(d.from, target)) deselect();

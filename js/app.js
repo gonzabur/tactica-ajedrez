@@ -79,6 +79,10 @@ window.App = (function () {
                    ? "Récord " + Math.max(records.rush3, records.rush5) : "") +
       "</div>" +
 
+      (st.lastRun && st.lastRun.length
+        ? '<button class="link-row" data-nav="#/revision">Revisar la última partida' +
+          "<span>›</span></button>"
+        : "") +
       '<button class="link-row" data-nav="#/progreso">Ver mi progreso<span>›</span></button>'
     );
     wireNav();
@@ -191,6 +195,72 @@ window.App = (function () {
       "</div>"
     );
     wireNav();
+  }
+
+  // --- revisión de la última partida --------------------------------------
+
+  var runFilter = "todos";
+
+  /** Lista los puzzles de la última partida de supervivencia o contrarreloj. */
+  function reviewList() {
+    var run = window.Store.state.lastRun || [];
+
+    if (!run.length) {
+      screen("screen-list",
+        backHeader("Revisión") +
+        '<p class="lead">Aquí aparecerán los puzzles en cuanto termines una partida de Supervivencia o Contrarreloj, para que puedas repasar sobre todo los que fallaste.</p>' +
+        '<div class="level-list">' +
+          '<button class="level-item" data-nav="#/supervivencia"><b>Jugar a Supervivencia</b><span>›</span></button>' +
+        "</div>");
+      wireNav();
+      return;
+    }
+
+    var fallos = run.filter(function (e) { return !e.ok; }).length;
+    var visibles = runFilter === "fallos"
+      ? run.filter(function (e) { return !e.ok; })
+      : run;
+
+    var html = backHeader("Revisión") +
+      '<p class="lead">Última partida: <b>' + run.length + "</b> puzzles, " +
+      "<b>" + (run.length - fallos) + "</b> acertados y <b>" + fallos + "</b> fallados. " +
+      "Toca cualquiera para volver a intentarlo con calma.</p>";
+
+    if (fallos && fallos < run.length) {
+      html += '<div class="filter-row">' +
+        filterChip("todos", "Todos (" + run.length + ")") +
+        filterChip("fallos", "Solo fallos (" + fallos + ")") +
+        "</div>";
+    }
+
+    html += '<div class="run-list">';
+    run.forEach(function (entry, i) {
+      if (visibles.indexOf(entry) === -1) return;
+      var puzzle = window.Data.get(entry.i);
+      var tema = window.THEMES.ranked(puzzle.themes)[0];
+      html += '<button class="run-item ' + (entry.ok ? "ok" : "ko") + '" ' +
+        'data-nav="#/revision/' + i + '">' +
+        '<span class="run-num">' + (i + 1) + "</span>" +
+        '<span class="run-mark" aria-hidden="true">' + (entry.ok ? "✓" : "✗") + "</span>" +
+        '<span class="run-text"><b>' + esc(tema ? window.THEMES.name(tema) : "Puzzle") + "</b>" +
+        "<small>dificultad " + puzzle.rating +
+        (entry.ok ? "" : " · lo fallaste") + "</small></span>" +
+        '<span class="run-go" aria-hidden="true">›</span></button>';
+    });
+    html += "</div>";
+
+    screen("screen-list", html);
+    wireNav();
+
+    on("[data-filter]", function (e) {
+      runFilter = e.currentTarget.getAttribute("data-filter");
+      reviewList();
+    });
+  }
+
+  function filterChip(id, label) {
+    return '<button class="filter-chip' + (runFilter === id ? " on" : "") + '" ' +
+      'data-filter="' + id + '">' + esc(label) + "</button>";
   }
 
   // --- progreso ----------------------------------------------------------
@@ -350,6 +420,8 @@ window.App = (function () {
         return parts[1] ? window.Modes.rush(parseInt(parts[1], 10)) : null;
       case "tema":
         return parts[2] ? window.Modes.theme(parts[1], parts[2]) : null;
+      case "revision":
+        return parts[1] ? window.Modes.review(parseInt(parts[1], 10)) : null;
       default: return null;
     }
   }
@@ -367,6 +439,7 @@ window.App = (function () {
       case "temas": themes(); break;
       case "tema": themeDetail(parts[1]); break;
       case "contrarreloj": rushMenu(); break;
+      case "revision": reviewList(); break;
       case "progreso": progress(); break;
       case "ajustes": settings(); break;
       default: home();

@@ -63,7 +63,8 @@ window.PuzzlePlayer = (function () {
     function refresh(animate) {
       board.setPosition(game.fen(), {
         animate: animate || null,
-        check: checkSquare()
+        check: checkSquare(),
+        mate: game.in_checkmate()
       });
     }
 
@@ -168,7 +169,8 @@ window.PuzzlePlayer = (function () {
           puzzle: puzzle,
           clean: !failedHere && !usedHint,
           failed: failedHere,
-          hinted: usedHint
+          hinted: usedHint,
+          mate: game.in_checkmate()
         });
       }
     }

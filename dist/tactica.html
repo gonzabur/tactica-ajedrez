@@ -292,6 +292,52 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   .level-item small { flex-basis: 100%; }
 }
 
+/* --- revisión de la última partida ---------------------------------------- */
+
+.filter-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.filter-chip {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-dim);
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.filter-chip.on {
+  background: var(--accent); border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.run-list { display: flex; flex-direction: column; gap: 7px; }
+
+.run-item {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: left; cursor: pointer;
+}
+.run-item:active { border-color: var(--accent); }
+/* Los fallados se distinguen sin tener que leer: son los que interesan. */
+.run-item.ko { border-left-color: var(--danger); }
+.run-item.ok { border-left-color: rgba(127, 176, 105, .55); }
+
+.run-num {
+  flex: 0 0 22px;
+  font-size: 12px; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.run-mark { font-size: 15px; font-weight: 700; }
+.run-item.ok .run-mark { color: var(--accent-strong); }
+.run-item.ko .run-mark { color: var(--danger); }
+.run-text { flex: 1; min-width: 0; }
+.run-text b { display: block; font-size: 14.5px; font-weight: 600; }
+.run-text small { color: var(--text-faint); font-size: 11.5px; }
+.run-go { color: var(--text-faint); font-size: 18px; }
+
 /* --- tiras de estadísticas ----------------------------------------------- */
 
 .stat-strip {
@@ -609,9 +655,28 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   box-shadow: inset 0 0 0 4px rgba(255, 255, 255, .75);
   border-radius: 3px;
 }
+/* Jaque: un resplandor rojo suave que se difumina hacia los bordes. */
 .mark.check {
   background: radial-gradient(circle at center,
     rgba(232, 60, 40, .95) 0%, rgba(232, 60, 40, .7) 32%, rgba(232, 60, 40, 0) 72%);
+}
+
+/* Mate: rojo mucho más profundo y, sobre todo, un cerco dorado que llena la
+   casilla entera. Se distingue del jaque de un vistazo, sin leer nada. */
+.mark.mate {
+  background: radial-gradient(circle at center,
+    rgba(206, 26, 34, 1) 0%, rgba(158, 12, 24, .95) 48%, rgba(108, 6, 16, .78) 100%);
+}
+.mark.mate::after {
+  content: ""; position: absolute; inset: 0;
+  box-shadow: inset 0 0 0 4px var(--gold);
+  border-radius: 2px;
+  animation: mate-ring .55s cubic-bezier(.2, .9, .3, 1) both;
+}
+
+@keyframes mate-ring {
+  0%   { opacity: 0; transform: scale(1.45); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 /* El destello se anima en un pseudo-elemento: el transform de la marca ya se
@@ -666,6 +731,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   .mark.flash-right::after, .mark.flash-wrong::after, .mark.flash-hint::after {
     animation: none; opacity: 1;
   }
+  .mark.mate::after { animation: none; opacity: 1; }
 }
 
 /* Pantalla de arranque: se muestra mientras se indexa el banco de puzzles. */
@@ -20215,10 +20281,24 @@ window.THEMES = (function () {
     }
   ];
 
+  // Temas ciertos pero poco informativos: describen la fase o la longitud,
+  // no el truco del puzzle. Se relegan al final.
+  var GENERIC = {
+    opening: 1, middlegame: 1, endgame: 1, mate: 1,
+    oneMove: 1, short: 1, long: 1, veryLong: 1
+  };
+
   function name(id) { return labels[id] ? labels[id][0] : id; }
   function desc(id) { return labels[id] ? labels[id][1] : ""; }
 
-  return { groups: groups, name: name, desc: desc, labels: labels };
+  /** Temas conocidos de un puzzle, del más revelador al más genérico. */
+  function ranked(list) {
+    return list
+      .filter(function (id) { return labels[id]; })
+      .sort(function (a, b) { return (GENERIC[a] || 0) - (GENERIC[b] || 0); });
+  }
+
+  return { groups: groups, name: name, desc: desc, ranked: ranked, labels: labels };
 })();
 
 </script>
@@ -20241,7 +20321,10 @@ window.Store = (function () {
     records: { survival: 0, rush3: 0, rush5: 0, streak: 0 },
     stats: { solved: 0, failed: 0, byTheme: {}, days: {}, history: [] },
     settings: { sound: true, coords: true, autoNext: true, animations: true },
-    lastPlayed: null
+    lastPlayed: null,
+    // última partida de supervivencia o contrarreloj, para poder repasarla:
+    // [{ i: índice del puzzle, ok: si se acertó }]
+    lastRun: []
   };
 
   var state = load();
@@ -20341,6 +20424,12 @@ window.Store = (function () {
     pushHistory(state.rating);
   }
 
+  /** Guarda la partida recién terminada para la pantalla de revisión. */
+  function setLastRun(entries) {
+    state.lastRun = entries.slice(0, 200);
+    save();
+  }
+
   function setRecord(key, value) {
     if (value > (state.records[key] || 0)) {
       state.records[key] = value;
@@ -20379,6 +20468,7 @@ window.Store = (function () {
     markSeen: markSeen,
     setRating: setRating,
     setRecord: setRecord,
+    setLastRun: setLastRun,
     streak: streak,
     solvedToday: solvedToday,
     todayKey: todayKey,
@@ -20743,6 +20833,7 @@ window.Board = (function () {
       selected: null,
       lastMove: null,      // [origen, destino]
       check: null,         // casilla del rey en jaque
+      mate: false,         // ...y si además es mate, que se vea distinto
       interactive: false,
       coords: options.coords !== false
     };
@@ -20852,7 +20943,7 @@ window.Board = (function () {
         mark(state.lastMove[0], "last");
         mark(state.lastMove[1], "last");
       }
-      if (state.check) mark(state.check, "check");
+      if (state.check) mark(state.check, state.mate ? "mate" : "check");
       if (state.selected) mark(state.selected, "selected");
 
       if (state.selected && state.interactive) {
@@ -21042,6 +21133,7 @@ window.Board = (function () {
 
         state.lastMove = opts.lastMove || (from ? [from, to] : null);
         state.check = opts.check || null;
+        state.mate = !!opts.mate;
 
         if (!mover) {
           state.pieces = next;
@@ -21218,7 +21310,8 @@ window.PuzzlePlayer = (function () {
     function refresh(animate) {
       board.setPosition(game.fen(), {
         animate: animate || null,
-        check: checkSquare()
+        check: checkSquare(),
+        mate: game.in_checkmate()
       });
     }
 
@@ -21323,7 +21416,8 @@ window.PuzzlePlayer = (function () {
           puzzle: puzzle,
           clean: !failedHere && !usedHint,
           failed: failedHere,
-          hinted: usedHint
+          hinted: usedHint,
+          mate: game.in_checkmate()
         });
       }
     }
@@ -21528,6 +21622,7 @@ window.Modes = (function () {
     var base = Math.max(600, Math.min(1000, window.Store.state.rating - 450));
     var step = opts.step || 34;
     var state = { solved: 0, missed: 0, best: 0, lives: opts.lives, streak: 0, bestStreak: 0 };
+    var played = [];   // todos los puzzles de la partida, para poder repasarla
 
     return {
       id: opts.id,
@@ -21548,6 +21643,7 @@ window.Modes = (function () {
       },
 
       result: function (res) {
+        played.push({ i: res.puzzle.index, ok: !!res.clean });
         if (res.clean) {
           state.solved++;
           state.streak++;
@@ -21575,6 +21671,7 @@ window.Modes = (function () {
       },
 
       finish: function () {
+        window.Store.setLastRun(played);
         var key = opts.recordKey;
         var isRecord = window.Store.setRecord(key, state.solved);
         if (state.bestStreak > (window.Store.state.records.streak || 0)) {
@@ -21586,7 +21683,8 @@ window.Modes = (function () {
           bestStreak: state.bestStreak,
           record: isRecord,
           best: window.Store.state.records[key],
-          topRating: Math.min(2900, Math.round(base + state.solved * step))
+          topRating: Math.min(2900, Math.round(base + state.solved * step)),
+          review: played.length
         };
       },
 
@@ -21597,18 +21695,68 @@ window.Modes = (function () {
   function survival() {
     return ladder({
       id: "survival", title: "Supervivencia", subtitle: "3 fallos y se acaba",
-      lives: 3, recordKey: "survival", step: 34
+      lives: 3, recordKey: "survival", step: 36
     });
   }
 
   function rush(minutes) {
     return ladder({
       id: "rush" + minutes, title: "Contrarreloj", subtitle: minutes + " minutos",
-      lives: 3, seconds: minutes * 60, recordKey: "rush" + minutes, step: 30
+      lives: 3, seconds: minutes * 60, recordKey: "rush" + minutes, step: 32
     });
   }
 
-  return { rated: rated, theme: theme, survival: survival, rush: rush, levels: LEVELS };
+  // --- Revisión de la última partida ------------------------------------
+
+  /**
+   * Recorre los puzzles de la última partida de supervivencia o contrarreloj,
+   * empezando por el que se indique. Aquí no hay prisa ni vidas: se puede
+   * volver a intentar, pedir pista y ver la solución, que es de lo que se
+   * trata al repasar un fallo.
+   */
+  function review(startAt) {
+    var run = window.Store.state.lastRun || [];
+    var cursor = Math.max(0, Math.min(startAt | 0, run.length - 1));
+    var showing = -1;
+
+    return {
+      id: "review",
+      title: "Revisión",
+      subtitle: "Última partida",
+      allowRetry: true,
+      allowHint: true,
+      autoNext: false,
+      lives: 0,
+      timed: 0,
+      affectsRating: false,
+      backTo: "#/revision",
+
+      next: function () {
+        if (cursor >= run.length) return null;
+        showing = cursor++;
+        return window.Data.get(run[showing].i);
+      },
+
+      // repasar no vuelve a contar: esos puzzles ya se anotaron al jugarlos
+      result: function () { return { over: false }; },
+
+      onExhausted: function () { window.location.hash = "#/revision"; },
+
+      hud: function () {
+        var entry = run[showing] || {};
+        return [
+          { label: "Puzzle", value: (showing + 1) + " de " + run.length },
+          { label: "En la partida", value: entry.ok ? "Acertaste" : "Fallaste",
+            danger: !entry.ok }
+        ];
+      }
+    };
+  }
+
+  return {
+    rated: rated, theme: theme, survival: survival, rush: rush,
+    review: review, levels: LEVELS
+  };
 })();
 
 </script>
@@ -21667,7 +21815,7 @@ window.Play = (function () {
     els.sub.textContent = mode.subtitle || "";
 
     root.querySelector('[data-act="exit"]').addEventListener("click", function () {
-      window.location.hash = "#/";
+      window.location.hash = mode.backTo || "#/";
     });
     root.querySelector('[data-act="flip"]').addEventListener("click", function () {
       board.flip();
@@ -21708,7 +21856,11 @@ window.Play = (function () {
 
   function nextPuzzle() {
     var puzzle = mode.next();
-    if (!puzzle) { finish({ reason: "sin-puzzles" }); return; }
+    if (!puzzle) {
+      if (mode.onExhausted) { mode.onExhausted(); return; }
+      finish({ reason: "sin-puzzles" });
+      return;
+    }
     player.load(puzzle);
   }
 
@@ -21736,16 +21888,20 @@ window.Play = (function () {
   }
 
   function onSolved(res) {
-    if (window.Store.settings.sound) window.Sound.right();
+    if (window.Store.settings.sound) {
+      if (res.mate) window.Sound.win(); else window.Sound.right();
+    }
     var outcome = mode.result(res) || {};
     renderHud();
 
     if (outcome.over) { finish(mode.finish ? mode.finish() : {}); return; }
 
     if (res.clean) {
-      setStatus(deltaText("¡Resuelto!", outcome.delta), "good");
+      setStatus(deltaText(res.mate ? "¡Jaque mate!" : "¡Resuelto!", outcome.delta), "good");
     } else {
-      setStatus(deltaText("Resuelto, pero con ayuda.", outcome.delta), "meh");
+      setStatus(deltaText(res.mate
+        ? "Jaque mate, pero con ayuda."
+        : "Resuelto, pero con ayuda.", outcome.delta), "meh");
     }
 
     if (mode.autoNext) {
@@ -21819,9 +21975,7 @@ window.Play = (function () {
 
   /** Al resolver, se muestran los motivos del puzzle: es donde se aprende. */
   function renderPuzzleInfo(puzzle) {
-    var interesting = puzzle.themes.filter(function (t) {
-      return window.THEMES.labels[t];
-    }).slice(0, 3);
+    var interesting = window.THEMES.ranked(puzzle.themes).slice(0, 3);
     if (!interesting.length) return;
 
     var info = document.createElement("div");
@@ -21889,12 +22043,16 @@ window.Play = (function () {
       '<div class="gameover-card">' +
         (summary.record ? '<div class="record-badge">¡Récord nuevo!</div>' : "") +
         "<h2>" + (headline || "Fin de la partida") + "</h2>" +
-        '<div class="big-score">' + (summary.score !== undefined ? summary.score : "") + "</div>" +
+        (summary.score !== undefined ? '<div class="big-score">' + summary.score + "</div>" : "") +
         '<dl class="summary">' + rows.map(function (r) {
           return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
         }).join("") + "</dl>" +
         '<div class="gameover-actions">' +
           '<button class="btn primary wide" data-act="again">Otra vez</button>' +
+          (summary.review
+            ? '<button class="btn ghost wide" data-act="review">Revisar los ' +
+              summary.review + " puzzles</button>"
+            : "") +
           '<button class="btn ghost wide" data-act="home">Volver al inicio</button>' +
         "</div>" +
       "</div>";
@@ -21905,6 +22063,10 @@ window.Play = (function () {
     els.gameover.querySelector('[data-act="home"]').addEventListener("click", function () {
       window.location.hash = "#/";
     });
+    var revisar = els.gameover.querySelector('[data-act="review"]');
+    if (revisar) {
+      revisar.addEventListener("click", function () { window.location.hash = "#/revision"; });
+    }
   }
 
   return {
@@ -22000,6 +22162,10 @@ window.App = (function () {
                    ? "Récord " + Math.max(records.rush3, records.rush5) : "") +
       "</div>" +
 
+      (st.lastRun && st.lastRun.length
+        ? '<button class="link-row" data-nav="#/revision">Revisar la última partida' +
+          "<span>›</span></button>"
+        : "") +
       '<button class="link-row" data-nav="#/progreso">Ver mi progreso<span>›</span></button>'
     );
     wireNav();
@@ -22112,6 +22278,72 @@ window.App = (function () {
       "</div>"
     );
     wireNav();
+  }
+
+  // --- revisión de la última partida --------------------------------------
+
+  var runFilter = "todos";
+
+  /** Lista los puzzles de la última partida de supervivencia o contrarreloj. */
+  function reviewList() {
+    var run = window.Store.state.lastRun || [];
+
+    if (!run.length) {
+      screen("screen-list",
+        backHeader("Revisión") +
+        '<p class="lead">Aquí aparecerán los puzzles en cuanto termines una partida de Supervivencia o Contrarreloj, para que puedas repasar sobre todo los que fallaste.</p>' +
+        '<div class="level-list">' +
+          '<button class="level-item" data-nav="#/supervivencia"><b>Jugar a Supervivencia</b><span>›</span></button>' +
+        "</div>");
+      wireNav();
+      return;
+    }
+
+    var fallos = run.filter(function (e) { return !e.ok; }).length;
+    var visibles = runFilter === "fallos"
+      ? run.filter(function (e) { return !e.ok; })
+      : run;
+
+    var html = backHeader("Revisión") +
+      '<p class="lead">Última partida: <b>' + run.length + "</b> puzzles, " +
+      "<b>" + (run.length - fallos) + "</b> acertados y <b>" + fallos + "</b> fallados. " +
+      "Toca cualquiera para volver a intentarlo con calma.</p>";
+
+    if (fallos && fallos < run.length) {
+      html += '<div class="filter-row">' +
+        filterChip("todos", "Todos (" + run.length + ")") +
+        filterChip("fallos", "Solo fallos (" + fallos + ")") +
+        "</div>";
+    }
+
+    html += '<div class="run-list">';
+    run.forEach(function (entry, i) {
+      if (visibles.indexOf(entry) === -1) return;
+      var puzzle = window.Data.get(entry.i);
+      var tema = window.THEMES.ranked(puzzle.themes)[0];
+      html += '<button class="run-item ' + (entry.ok ? "ok" : "ko") + '" ' +
+        'data-nav="#/revision/' + i + '">' +
+        '<span class="run-num">' + (i + 1) + "</span>" +
+        '<span class="run-mark" aria-hidden="true">' + (entry.ok ? "✓" : "✗") + "</span>" +
+        '<span class="run-text"><b>' + esc(tema ? window.THEMES.name(tema) : "Puzzle") + "</b>" +
+        "<small>dificultad " + puzzle.rating +
+        (entry.ok ? "" : " · lo fallaste") + "</small></span>" +
+        '<span class="run-go" aria-hidden="true">›</span></button>';
+    });
+    html += "</div>";
+
+    screen("screen-list", html);
+    wireNav();
+
+    on("[data-filter]", function (e) {
+      runFilter = e.currentTarget.getAttribute("data-filter");
+      reviewList();
+    });
+  }
+
+  function filterChip(id, label) {
+    return '<button class="filter-chip' + (runFilter === id ? " on" : "") + '" ' +
+      'data-filter="' + id + '">' + esc(label) + "</button>";
   }
 
   // --- progreso ----------------------------------------------------------
@@ -22271,6 +22503,8 @@ window.App = (function () {
         return parts[1] ? window.Modes.rush(parseInt(parts[1], 10)) : null;
       case "tema":
         return parts[2] ? window.Modes.theme(parts[1], parts[2]) : null;
+      case "revision":
+        return parts[1] ? window.Modes.review(parseInt(parts[1], 10)) : null;
       default: return null;
     }
   }
@@ -22288,6 +22522,7 @@ window.App = (function () {
       case "temas": themes(); break;
       case "tema": themeDetail(parts[1]); break;
       case "contrarreloj": rushMenu(); break;
+      case "revision": reviewList(); break;
       case "progreso": progress(); break;
       case "ajustes": settings(); break;
       default: home();

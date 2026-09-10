@@ -15,6 +15,7 @@ sacados de la base de datos abierta de Lichess.
 | **Contrarreloj** | Lo mismo con reloj de 3 o 5 minutos. |
 | **Clasificado** | Puzzles ajustados a tu rating, que sube o baja según aciertes. Es el que mide tu nivel. |
 | **Entrenamiento** | Eliges tema (horquilla, clavada, finales de torres, mate en 2, aperturas…) y dificultad. Con pistas y solución. |
+| **Revisión** | Al terminar una partida de Supervivencia o Contrarreloj puedes repasar uno a uno los puzzles jugados, filtrando por los que fallaste, y volver a intentarlos sin prisa. |
 | **Progreso** | Evolución del rating, precisión por tema, récords y calendario de actividad. |
 
 Todo el progreso se guarda en el navegador del dispositivo. No hay cuentas ni

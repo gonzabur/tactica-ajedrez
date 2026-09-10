@@ -50,7 +50,7 @@ window.Play = (function () {
     els.sub.textContent = mode.subtitle || "";
 
     root.querySelector('[data-act="exit"]').addEventListener("click", function () {
-      window.location.hash = "#/";
+      window.location.hash = mode.backTo || "#/";
     });
     root.querySelector('[data-act="flip"]').addEventListener("click", function () {
       board.flip();
@@ -91,7 +91,11 @@ window.Play = (function () {
 
   function nextPuzzle() {
     var puzzle = mode.next();
-    if (!puzzle) { finish({ reason: "sin-puzzles" }); return; }
+    if (!puzzle) {
+      if (mode.onExhausted) { mode.onExhausted(); return; }
+      finish({ reason: "sin-puzzles" });
+      return;
+    }
     player.load(puzzle);
   }
 
@@ -119,16 +123,20 @@ window.Play = (function () {
   }
 
   function onSolved(res) {
-    if (window.Store.settings.sound) window.Sound.right();
+    if (window.Store.settings.sound) {
+      if (res.mate) window.Sound.win(); else window.Sound.right();
+    }
     var outcome = mode.result(res) || {};
     renderHud();
 
     if (outcome.over) { finish(mode.finish ? mode.finish() : {}); return; }
 
     if (res.clean) {
-      setStatus(deltaText("¡Resuelto!", outcome.delta), "good");
+      setStatus(deltaText(res.mate ? "¡Jaque mate!" : "¡Resuelto!", outcome.delta), "good");
     } else {
-      setStatus(deltaText("Resuelto, pero con ayuda.", outcome.delta), "meh");
+      setStatus(deltaText(res.mate
+        ? "Jaque mate, pero con ayuda."
+        : "Resuelto, pero con ayuda.", outcome.delta), "meh");
     }
 
     if (mode.autoNext) {
@@ -202,9 +210,7 @@ window.Play = (function () {
 
   /** Al resolver, se muestran los motivos del puzzle: es donde se aprende. */
   function renderPuzzleInfo(puzzle) {
-    var interesting = puzzle.themes.filter(function (t) {
-      return window.THEMES.labels[t];
-    }).slice(0, 3);
+    var interesting = window.THEMES.ranked(puzzle.themes).slice(0, 3);
     if (!interesting.length) return;
 
     var info = document.createElement("div");
@@ -272,12 +278,16 @@ window.Play = (function () {
       '<div class="gameover-card">' +
         (summary.record ? '<div class="record-badge">¡Récord nuevo!</div>' : "") +
         "<h2>" + (headline || "Fin de la partida") + "</h2>" +
-        '<div class="big-score">' + (summary.score !== undefined ? summary.score : "") + "</div>" +
+        (summary.score !== undefined ? '<div class="big-score">' + summary.score + "</div>" : "") +
         '<dl class="summary">' + rows.map(function (r) {
           return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
         }).join("") + "</dl>" +
         '<div class="gameover-actions">' +
           '<button class="btn primary wide" data-act="again">Otra vez</button>' +
+          (summary.review
+            ? '<button class="btn ghost wide" data-act="review">Revisar los ' +
+              summary.review + " puzzles</button>"
+            : "") +
           '<button class="btn ghost wide" data-act="home">Volver al inicio</button>' +
         "</div>" +
       "</div>";
@@ -288,6 +298,10 @@ window.Play = (function () {
     els.gameover.querySelector('[data-act="home"]').addEventListener("click", function () {
       window.location.hash = "#/";
     });
+    var revisar = els.gameover.querySelector('[data-act="review"]');
+    if (revisar) {
+      revisar.addEventListener("click", function () { window.location.hash = "#/revision"; });
+    }
   }
 
   return {

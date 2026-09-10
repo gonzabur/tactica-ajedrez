@@ -44,6 +44,7 @@ window.Board = (function () {
       selected: null,
       lastMove: null,      // [origen, destino]
       check: null,         // casilla del rey en jaque
+      mate: false,         // ...y si además es mate, que se vea distinto
       interactive: false,
       coords: options.coords !== false
     };
@@ -153,7 +154,7 @@ window.Board = (function () {
         mark(state.lastMove[0], "last");
         mark(state.lastMove[1], "last");
       }
-      if (state.check) mark(state.check, "check");
+      if (state.check) mark(state.check, state.mate ? "mate" : "check");
       if (state.selected) mark(state.selected, "selected");
 
       if (state.selected && state.interactive) {
@@ -343,6 +344,7 @@ window.Board = (function () {
 
         state.lastMove = opts.lastMove || (from ? [from, to] : null);
         state.check = opts.check || null;
+        state.mate = !!opts.mate;
 
         if (!mover) {
           state.pieces = next;

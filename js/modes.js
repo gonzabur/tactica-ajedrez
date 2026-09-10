@@ -127,6 +127,7 @@ window.Modes = (function () {
     var base = Math.max(600, Math.min(1000, window.Store.state.rating - 450));
     var step = opts.step || 34;
     var state = { solved: 0, missed: 0, best: 0, lives: opts.lives, streak: 0, bestStreak: 0 };
+    var played = [];   // todos los puzzles de la partida, para poder repasarla
 
     return {
       id: opts.id,
@@ -147,6 +148,7 @@ window.Modes = (function () {
       },
 
       result: function (res) {
+        played.push({ i: res.puzzle.index, ok: !!res.clean });
         if (res.clean) {
           state.solved++;
           state.streak++;
@@ -174,6 +176,7 @@ window.Modes = (function () {
       },
 
       finish: function () {
+        window.Store.setLastRun(played);
         var key = opts.recordKey;
         var isRecord = window.Store.setRecord(key, state.solved);
         if (state.bestStreak > (window.Store.state.records.streak || 0)) {
@@ -185,7 +188,8 @@ window.Modes = (function () {
           bestStreak: state.bestStreak,
           record: isRecord,
           best: window.Store.state.records[key],
-          topRating: Math.min(2900, Math.round(base + state.solved * step))
+          topRating: Math.min(2900, Math.round(base + state.solved * step)),
+          review: played.length
         };
       },
 
@@ -196,16 +200,66 @@ window.Modes = (function () {
   function survival() {
     return ladder({
       id: "survival", title: "Supervivencia", subtitle: "3 fallos y se acaba",
-      lives: 3, recordKey: "survival", step: 34
+      lives: 3, recordKey: "survival", step: 36
     });
   }
 
   function rush(minutes) {
     return ladder({
       id: "rush" + minutes, title: "Contrarreloj", subtitle: minutes + " minutos",
-      lives: 3, seconds: minutes * 60, recordKey: "rush" + minutes, step: 30
+      lives: 3, seconds: minutes * 60, recordKey: "rush" + minutes, step: 32
     });
   }
 
-  return { rated: rated, theme: theme, survival: survival, rush: rush, levels: LEVELS };
+  // --- Revisión de la última partida ------------------------------------
+
+  /**
+   * Recorre los puzzles de la última partida de supervivencia o contrarreloj,
+   * empezando por el que se indique. Aquí no hay prisa ni vidas: se puede
+   * volver a intentar, pedir pista y ver la solución, que es de lo que se
+   * trata al repasar un fallo.
+   */
+  function review(startAt) {
+    var run = window.Store.state.lastRun || [];
+    var cursor = Math.max(0, Math.min(startAt | 0, run.length - 1));
+    var showing = -1;
+
+    return {
+      id: "review",
+      title: "Revisión",
+      subtitle: "Última partida",
+      allowRetry: true,
+      allowHint: true,
+      autoNext: false,
+      lives: 0,
+      timed: 0,
+      affectsRating: false,
+      backTo: "#/revision",
+
+      next: function () {
+        if (cursor >= run.length) return null;
+        showing = cursor++;
+        return window.Data.get(run[showing].i);
+      },
+
+      // repasar no vuelve a contar: esos puzzles ya se anotaron al jugarlos
+      result: function () { return { over: false }; },
+
+      onExhausted: function () { window.location.hash = "#/revision"; },
+
+      hud: function () {
+        var entry = run[showing] || {};
+        return [
+          { label: "Puzzle", value: (showing + 1) + " de " + run.length },
+          { label: "En la partida", value: entry.ok ? "Acertaste" : "Fallaste",
+            danger: !entry.ok }
+        ];
+      }
+    };
+  }
+
+  return {
+    rated: rated, theme: theme, survival: survival, rush: rush,
+    review: review, levels: LEVELS
+  };
 })();

@@ -108,8 +108,22 @@ window.THEMES = (function () {
     }
   ];
 
+  // Temas ciertos pero poco informativos: describen la fase o la longitud,
+  // no el truco del puzzle. Se relegan al final.
+  var GENERIC = {
+    opening: 1, middlegame: 1, endgame: 1, mate: 1,
+    oneMove: 1, short: 1, long: 1, veryLong: 1
+  };
+
   function name(id) { return labels[id] ? labels[id][0] : id; }
   function desc(id) { return labels[id] ? labels[id][1] : ""; }
 
-  return { groups: groups, name: name, desc: desc, labels: labels };
+  /** Temas conocidos de un puzzle, del más revelador al más genérico. */
+  function ranked(list) {
+    return list
+      .filter(function (id) { return labels[id]; })
+      .sort(function (a, b) { return (GENERIC[a] || 0) - (GENERIC[b] || 0); });
+  }
+
+  return { groups: groups, name: name, desc: desc, ranked: ranked, labels: labels };
 })();

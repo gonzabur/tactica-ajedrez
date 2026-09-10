@@ -14,7 +14,10 @@ window.Store = (function () {
     records: { survival: 0, rush3: 0, rush5: 0, streak: 0 },
     stats: { solved: 0, failed: 0, byTheme: {}, days: {}, history: [] },
     settings: { sound: true, coords: true, autoNext: true, animations: true },
-    lastPlayed: null
+    lastPlayed: null,
+    // última partida de supervivencia o contrarreloj, para poder repasarla:
+    // [{ i: índice del puzzle, ok: si se acertó }]
+    lastRun: []
   };
 
   var state = load();
@@ -114,6 +117,12 @@ window.Store = (function () {
     pushHistory(state.rating);
   }
 
+  /** Guarda la partida recién terminada para la pantalla de revisión. */
+  function setLastRun(entries) {
+    state.lastRun = entries.slice(0, 200);
+    save();
+  }
+
   function setRecord(key, value) {
     if (value > (state.records[key] || 0)) {
       state.records[key] = value;
@@ -152,6 +161,7 @@ window.Store = (function () {
     markSeen: markSeen,
     setRating: setRating,
     setRecord: setRecord,
+    setLastRun: setLastRun,
     streak: streak,
     solvedToday: solvedToday,
     todayKey: todayKey,

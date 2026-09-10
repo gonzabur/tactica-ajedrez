@@ -386,16 +386,83 @@ window.App = (function () {
       '<i class="hm l2"></i><i class="hm l3"></i><i class="hm l4"></i><span>más</span></div>';
   }
 
+  // --- aspecto -----------------------------------------------------------
+
+  var BOARDS = [
+    { id: "verde",   name: "Verde" },
+    { id: "madera",  name: "Madera" },
+    { id: "azul",    name: "Azul" },
+    { id: "pizarra", name: "Pizarra" },
+    { id: "lavanda", name: "Lavanda" },
+    { id: "noche",   name: "Noche" }
+  ];
+
+  var THEME_OPTIONS = [
+    { id: "auto",  name: "Automático" },
+    { id: "light", name: "Claro" },
+    { id: "dark",  name: "Oscuro" }
+  ];
+
+  /** Tema efectivo: "automático" se resuelve mirando el ajuste del sistema. */
+  function resolvedTheme() {
+    var choice = window.Store.settings.theme || "auto";
+    if (choice === "light" || choice === "dark") return choice;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
+      ? "light" : "dark";
+  }
+
+  /** Estampa tema y tablero en <html>, de donde cuelga toda la paleta. */
+  function applyAppearance() {
+    var theme = resolvedTheme();
+    var root = document.documentElement;
+    root.setAttribute("data-ui-theme", theme);
+    root.setAttribute("data-board", window.Store.settings.board || "verde");
+
+    // que la barra de estado del móvil acompañe al fondo de la app
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", theme === "light" ? "#f1f3f6" : "#12141a");
+  }
+
   // --- ajustes -----------------------------------------------------------
 
   function settings() {
     var s = window.Store.settings;
+    var pieceSet = window.PIECE_SETS[s.pieces] || window.PIECE_SETS.cburnett;
+
     screen("screen-list",
       backHeader("Ajustes") +
       '<div class="switch-list">' +
         toggle("sound", "Sonido", "Efectos al mover y al acertar", s.sound) +
         toggle("coords", "Coordenadas", "Letras y números en el borde del tablero", s.coords) +
       "</div>" +
+
+      '<h2 class="section-title">Aspecto</h2>' +
+
+      '<h3 class="pref-label">Tema</h3>' +
+      '<div class="segmented">' + THEME_OPTIONS.map(function (t) {
+        return '<button data-theme="' + t.id + '"' +
+          (s.theme === t.id ? ' class="on"' : "") + ">" + esc(t.name) + "</button>";
+      }).join("") + "</div>" +
+      '<p class="credit-line">Automático sigue el modo claro u oscuro de tu iPhone.</p>' +
+
+      '<h3 class="pref-label">Color del tablero</h3>' +
+      '<div class="picker-grid">' + BOARDS.map(function (b) {
+        return '<button class="picker-item' + (s.board === b.id ? " on" : "") + '" ' +
+          'data-board-pick="' + b.id + '" data-board="' + b.id + '">' +
+          '<span class="swatch" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' +
+          "<span>" + esc(b.name) + "</span></button>";
+      }).join("") + "</div>" +
+
+      '<h3 class="pref-label">Piezas</h3>' +
+      '<div class="picker-grid">' + window.PIECE_SET_ORDER.map(function (id) {
+        var set = window.PIECE_SETS[id];
+        return '<button class="picker-item' + (s.pieces === id ? " on" : "") + '" ' +
+          'data-pieces="' + id + '">' +
+          '<span class="piece-preview" aria-hidden="true">' +
+          "<i>" + set.pieces.wN + "</i><i>" + set.pieces.bQ + "</i></span>" +
+          "<span>" + esc(set.name) + "</span></button>";
+      }).join("") + "</div>" +
+      '<p class="credit-line" id="piece-credit">' + esc(pieceSet.credit) + "</p>" +
 
       '<h2 class="section-title">Tu rating</h2>' +
       '<p class="group-hint">Si ya sabes más o menos tu nivel, ajústalo aquí y la app te servirá puzzles adecuados desde el principio.</p>' +
@@ -408,18 +475,35 @@ window.App = (function () {
       '<h2 class="section-title">Datos</h2>' +
       '<button class="btn danger wide" data-act="reset">Borrar todo mi progreso</button>' +
       '<p class="credits">Puzzles de la base de datos abierta de <b>Lichess</b> (CC0). ' +
-      "Piezas «cburnett» de Colin M. L. Burnett (CC BY-SA 3.0). " +
-      "Reglas de ajedrez con chess.js (BSD).</p>"
+      "Reglas de ajedrez con chess.js (BSD). Los juegos de piezas son obra de " +
+      "distintos autores, cada uno con su licencia; el del juego elegido aparece " +
+      "arriba, junto al selector.</p>"
     );
     wireNav();
 
     on("[data-toggle]", function (e) {
       var key = e.currentTarget.getAttribute("data-toggle");
-      window.Store.settings[key] = !window.Store.settings[key];
-      window.Store.save();
+      window.Store.setSetting(key, !window.Store.settings[key]);
       if (key === "sound") window.Sound.setEnabled(window.Store.settings[key]);
       e.currentTarget.classList.toggle("on", window.Store.settings[key]);
       e.currentTarget.setAttribute("aria-checked", String(window.Store.settings[key]));
+    });
+
+    on("[data-theme]", function (e) {
+      window.Store.setSetting("theme", e.currentTarget.getAttribute("data-theme"));
+      applyAppearance();
+      settings();      // se repinta para que la opción marcada sea la nueva
+    });
+
+    on("[data-board-pick]", function (e) {
+      window.Store.setSetting("board", e.currentTarget.getAttribute("data-board-pick"));
+      applyAppearance();
+      settings();
+    });
+
+    on("[data-pieces]", function (e) {
+      window.Store.setSetting("pieces", e.currentTarget.getAttribute("data-pieces"));
+      settings();
     });
 
     on("[data-adj]", function (e) {
@@ -433,6 +517,7 @@ window.App = (function () {
     on('[data-act="reset"]', function () {
       if (!window.confirm("Se borrará tu rating, tus récords y todas las estadísticas. ¿Seguro?")) return;
       window.Store.reset();
+      applyAppearance();
       go("#/");
     });
   }
@@ -495,6 +580,18 @@ window.App = (function () {
       root.innerHTML = '<div class="fatal"><h1>No se han podido cargar los puzzles</h1>' +
         "<p>" + esc(e.message) + "</p></div>";
       return;
+    }
+
+    applyAppearance();
+    // en modo automático hay que reaccionar si el sistema cambia de tema
+    // mientras la app está abierta
+    if (window.matchMedia) {
+      var query = window.matchMedia("(prefers-color-scheme: light)");
+      var onChange = function () {
+        if ((window.Store.settings.theme || "auto") === "auto") applyAppearance();
+      };
+      if (query.addEventListener) query.addEventListener("change", onChange);
+      else if (query.addListener) query.addListener(onChange);   // Safari antiguo
     }
 
     window.Sound.setEnabled(window.Store.settings.sound);

@@ -13,16 +13,24 @@
 
   --text: #eef0f4;
   --text-dim: #a2a9b8;
-  --text-faint: #6f7788;
+  --text-faint: #7b8496;
 
   --accent: #7fb069;
   --accent-strong: #96c97c;
   --accent-ink: #14200f;
+  --accent-rgb: 127, 176, 105;   /* para tintes translúcidos */
   --gold: #e8b84b;
+  --gold-rgb: 232, 184, 75;
+  --gold-ink: #241a02;
   --danger: #e5674f;
+  --icon-blue: #78b6e8;
+  --icon-violet: #cf92d8;
+  --knob: #ffffff;
+  --scrim: rgba(10, 11, 15, .93);
 
   --sq-light: #eeeed2;
   --sq-dark: #769656;
+  --board-ink: rgba(20, 30, 15, .34);   /* puntos y aros sobre las casillas */
   --hl-last: rgba(255, 214, 0, 0.40);
   --hl-sel: rgba(255, 214, 0, 0.58);
 
@@ -31,6 +39,50 @@
   --pad: 16px;
 
   color-scheme: dark;
+}
+
+/* Modo claro. El JS resuelve "automático" y estampa siempre light u dark en
+   <html>, así que aquí basta un bloque y no hay que duplicar la paleta en una
+   media query. Se usa data-ui-theme y no data-theme para no chocar con el
+   atributo que estampa el contenedor cuando la app se publica como página. */
+:root[data-ui-theme="light"] {
+  --bg: #f1f3f6;
+  --bg-soft: #e8ebf0;
+  --surface: #ffffff;
+  --surface-2: #e6eaf1;
+  --line: #d9dfe8;
+
+  --text: #171a21;
+  --text-dim: #586072;
+  --text-faint: #6f7787;
+
+  --accent: #4e7d3a;
+  --accent-strong: #3d6a2b;
+  --accent-ink: #ffffff;
+  --accent-rgb: 78, 125, 58;
+  --gold: #a87c12;
+  --gold-rgb: 168, 124, 18;
+  --gold-ink: #fdf3dd;
+  --danger: #bd3f28;
+  --icon-blue: #2f6f9e;
+  --icon-violet: #7d4a8a;
+  --knob: #ffffff;
+  --scrim: rgba(241, 243, 246, .94);
+
+  color-scheme: light;
+}
+
+/* --- colores de tablero -------------------------------------------------
+   Solo se redefinen las casillas y la tinta de las marcas; el resto de la
+   interfaz no depende del tablero elegido. */
+[data-board="verde"]   { --sq-light: #eeeed2; --sq-dark: #769656; }
+[data-board="madera"]  { --sq-light: #f0d9b5; --sq-dark: #b58863; }
+[data-board="azul"]    { --sq-light: #dee3e6; --sq-dark: #8ca2ad; }
+[data-board="pizarra"] { --sq-light: #e8e8e8; --sq-dark: #7f8489; }
+[data-board="lavanda"] { --sq-light: #e9e2f3; --sq-dark: #9280b3; }
+[data-board="noche"] {
+  --sq-light: #8fa0b0; --sq-dark: #4f5f73;
+  --board-ink: rgba(255, 255, 255, .45);   /* sobre casillas oscuras */
 }
 
 * { box-sizing: border-box; }
@@ -199,8 +251,8 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   color: var(--accent-strong);
 }
 .mode-survival .mode-icon { color: var(--gold); }
-.mode-rush .mode-icon { color: #78b6e8; }
-.mode-themes .mode-icon { color: #cf92d8; }
+.mode-rush .mode-icon { color: var(--icon-blue); }
+.mode-themes .mode-icon { color: var(--icon-violet); }
 
 .mode-text { flex: 1; min-width: 0; }
 .mode-text b { display: block; font-size: 16px; font-weight: 620; }
@@ -209,7 +261,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .mode-badge {
   font-size: 11px; font-weight: 600;
   color: var(--gold);
-  background: rgba(232, 184, 75, .12);
+  background: rgba(var(--gold-rgb), .13);
   padding: 4px 8px; border-radius: 20px;
   white-space: nowrap;
 }
@@ -327,7 +379,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .run-item:active { border-color: var(--accent); }
 /* Los fallados se distinguen sin tener que leer: son los que interesan. */
 .run-item.ko { border-left-color: var(--danger); }
-.run-item.ok { border-left-color: rgba(127, 176, 105, .55); }
+.run-item.ok { border-left-color: rgba(var(--accent-rgb), .55); }
 
 .run-num {
   flex: 0 0 22px;
@@ -389,9 +441,9 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   margin-bottom: 8px;
 }
 .hm { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--surface-2); }
-.hm.l1 { background: rgba(127, 176, 105, .32); }
-.hm.l2 { background: rgba(127, 176, 105, .55); }
-.hm.l3 { background: rgba(127, 176, 105, .78); }
+.hm.l1 { background: rgba(var(--accent-rgb), .32); }
+.hm.l2 { background: rgba(var(--accent-rgb), .55); }
+.hm.l3 { background: rgba(var(--accent-rgb), .78); }
 .hm.l4 { background: var(--accent-strong); }
 .heatmap-legend {
   display: flex; align-items: center; gap: 4px;
@@ -421,7 +473,8 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .switch-knob::after {
   content: ""; position: absolute; top: 3px; left: 3px;
   width: 23px; height: 23px; border-radius: 50%;
-  background: #fff;
+  background: var(--knob);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
   transition: transform .18s;
 }
 .switch.on .switch-knob { background: var(--accent); }
@@ -439,6 +492,79 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   margin-top: 26px;
 }
 .credits b { color: var(--text-dim); }
+
+/* --- selectores de aspecto ------------------------------------------------ */
+
+.pref-label {
+  font-size: 13.5px; font-weight: 600;
+  margin: 18px 0 9px;
+}
+
+/* Tema: tres opciones excluyentes en una sola barra. */
+.segmented {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 3px; padding: 3px;
+  background: var(--surface-2);
+  border-radius: 12px;
+}
+.segmented button {
+  border: 0; border-radius: 9px;
+  background: transparent; color: var(--text-dim);
+  padding: 10px 4px;
+  font-size: 13.5px; font-weight: 600;
+  cursor: pointer;
+}
+.segmented button.on {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .22);
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.picker-item {
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 8px 8px 7px;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.picker-item.on { border-color: var(--accent); }
+.picker-item span {
+  font-size: 11.5px; color: var(--text-dim);
+  font-weight: 600;
+}
+.picker-item.on span { color: var(--text); }
+
+/* Muestra del tablero: cuatro casillas con los colores de ese tema. */
+.swatch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%; aspect-ratio: 1;
+  border-radius: 6px; overflow: hidden;
+}
+.swatch i:nth-child(1), .swatch i:nth-child(4) { background: var(--sq-light); }
+.swatch i:nth-child(2), .swatch i:nth-child(3) { background: var(--sq-dark); }
+
+/* Muestra de piezas: una blanca y una negra, cada una en su casilla. */
+.piece-preview {
+  display: grid; grid-template-columns: 1fr 1fr;
+  width: 100%; aspect-ratio: 2 / 1;
+  border-radius: 6px; overflow: hidden;
+}
+.piece-preview i { display: grid; place-items: center; padding: 8%; }
+.piece-preview i:first-child { background: var(--sq-light); }
+.piece-preview i:last-child { background: var(--sq-dark); }
+.piece-preview svg { width: 100%; height: 100%; }
+
+.credit-line {
+  font-size: 11.5px; color: var(--text-faint);
+  margin: 10px 0 0;
+}
 
 /* --- botones -------------------------------------------------------------- */
 
@@ -515,7 +641,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .chips { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
 .chip {
   font-size: 11.5px; font-weight: 600;
-  background: rgba(127, 176, 105, .16);
+  background: rgba(var(--accent-rgb), .16);
   color: var(--accent-strong);
   padding: 4px 10px; border-radius: 20px;
 }
@@ -531,7 +657,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 
 .gameover {
   position: fixed; inset: 0;
-  background: rgba(10, 11, 15, .93);
+  background: var(--scrim);
   display: grid; place-items: center;
   padding: 24px;
   z-index: 40;
@@ -548,7 +674,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .gameover-card h2 { margin: 0; font-size: 19px; font-weight: 650; }
 .record-badge {
   display: inline-block;
-  background: var(--gold); color: #241a02;
+  background: var(--gold); color: var(--gold-ink);
   font-size: 12px; font-weight: 700;
   padding: 5px 12px; border-radius: 20px;
   margin-bottom: 12px;
@@ -647,12 +773,12 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .mark.dest::after {
   content: ""; position: absolute; inset: 34%;
   border-radius: 50%;
-  background: rgba(20, 30, 15, .34);
+  background: var(--board-ink);
 }
 .mark.capture::after {
   content: ""; position: absolute; inset: 4%;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 5px rgba(20, 30, 15, .34);
+  box-shadow: inset 0 0 0 5px var(--board-ink);
 }
 .mark.hover {
   z-index: 4;

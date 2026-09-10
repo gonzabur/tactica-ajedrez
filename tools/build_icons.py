@@ -47,7 +47,7 @@ def inner_svg(path):
 
 
 def main():
-    piece = inner_svg(os.path.join(ASSETS, "pieces", "wN.svg"))
+    piece = inner_svg(os.path.join(ASSETS, "pieces", "cburnett", "wN.svg"))
     icon_path = os.path.join(ASSETS, "icon.svg")
     with open(icon_path, "w", encoding="utf-8") as fh:
         fh.write(ICON_TEMPLATE.format(piece=piece))

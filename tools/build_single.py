@@ -49,9 +49,24 @@ def collect():
     return css, scripts
 
 
+def theme_bootstrap():
+    """El script que estampa el tema antes del primer pintado. Va marcado con
+    id="tema-inicial" en index.html porque el empaquetado debe conservarlo, a
+    diferencia del registro del service worker, que aquí no tiene sentido."""
+    html = read("index.html")
+    found = re.search(r'<script id="tema-inicial">(.*?)</script>', html, re.S)
+    if not found:
+        raise SystemExit("falta el script tema-inicial en index.html")
+    return found.group(1).strip()
+
+
 def body(icon_data_uri=None):
     css, scripts = collect()
-    parts = [f"<title>{TITLE}</title>", "<style>\n" + css + "\n</style>"]
+    parts = [
+        f"<title>{TITLE}</title>",
+        "<script>\n" + guard(theme_bootstrap(), "tema-inicial") + "\n</script>",
+        "<style>\n" + css + "\n</style>",
+    ]
     if icon_data_uri:
         parts.append(f'<link rel="apple-touch-icon" href="{icon_data_uri}">')
     parts.append('<div id="app"></div>')

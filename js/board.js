@@ -46,7 +46,8 @@ window.Board = (function () {
       check: null,         // casilla del rey en jaque
       mate: false,         // ...y si además es mate, que se vea distinto
       interactive: false,
-      coords: options.coords !== false
+      coords: options.coords !== false,
+      pieceSet: options.pieces || "cburnett"
     };
 
     var els = {};          // casilla -> elemento de la pieza
@@ -126,13 +127,19 @@ window.Board = (function () {
       squaresLayer.appendChild(frag);
     }
 
+    /** SVG de una pieza en el juego activo, con vuelta atrás si no existe. */
+    function svgFor(piece) {
+      var set = window.PIECE_SETS[state.pieceSet] || window.PIECE_SETS.cburnett;
+      return set.pieces[piece];
+    }
+
     function renderPieces() {
       piecesLayer.innerHTML = "";
       els = {};
       for (var sq in state.pieces) {
         var el = document.createElement("div");
         el.className = "piece";
-        el.innerHTML = window.PIECE_SVG[state.pieces[sq]];
+        el.innerHTML = svgFor(state.pieces[sq]);
         place(el, sq);
         piecesLayer.appendChild(el);
         els[sq] = el;
@@ -307,7 +314,7 @@ window.Board = (function () {
         btn.className = "promo-choice";
         btn.type = "button";
         btn.setAttribute("aria-label", pieceName(kind));
-        btn.innerHTML = window.PIECE_SVG[color + kind];
+        btn.innerHTML = svgFor(color + kind);
         var row = downwards ? i : 7 - i;
         btn.style.transform = "translate(" + pos[0] * 100 + "%," + row * 100 + "%)";
         btn.addEventListener("click", function (ev) {
@@ -418,6 +425,13 @@ window.Board = (function () {
       setCoords: function (on) {
         state.coords = !!on;
         drawCoords();
+      },
+
+      /** Cambia el juego de piezas y las vuelve a dibujar en el sitio. */
+      setPieces: function (id) {
+        if (!window.PIECE_SETS[id]) return;
+        state.pieceSet = id;
+        renderPieces();
       },
 
       /** Marca visual de acierto o error sobre una casilla. */

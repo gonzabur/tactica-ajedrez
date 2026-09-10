@@ -17,6 +17,21 @@
 <link rel="icon" href="assets/icon-192.png">
 
 <link rel="stylesheet" href="css/styles.css">
+
+<script id="tema-inicial">
+  // Se estampa el tema ANTES de pintar nada: si no, quien tenga elegido el modo
+  // claro vería un fogonazo oscuro en cada arranque. Lee su propia clave suelta
+  // para no tener que analizar todo el progreso guardado.
+  (function () {
+    var elegido = "auto";
+    try { elegido = localStorage.getItem("tactica.tema") || "auto"; } catch (e) { /* modo privado */ }
+    var tema = elegido === "light" || elegido === "dark"
+      ? elegido
+      : (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
+          ? "light" : "dark");
+    document.documentElement.setAttribute("data-ui-theme", tema);
+  })();
+</script>
 </head>
 <body class="loading">
 
@@ -34,12 +49,12 @@
     display: none;
     flex-direction: column; align-items: center; justify-content: center;
     gap: 14px;
-    background: #12141a; color: #6f7788;
+    background: var(--bg); color: var(--text-faint);
     font-size: 14px;
   }
   body.loading .boot { display: flex; }
   body.loading #app { visibility: hidden; }
-  .boot-icon { font-size: 54px; color: #7fb069; animation: bob 1.4s ease-in-out infinite; }
+  .boot-icon { font-size: 54px; color: var(--accent); animation: bob 1.4s ease-in-out infinite; }
   @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
 </style>
 

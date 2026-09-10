@@ -4,6 +4,10 @@
  */
 window.Store = (function () {
   var KEY = "tactica.v1";
+  // El tema se guarda además suelto, para que el script de arranque de
+  // index.html pueda leerlo sin analizar todo el progreso y evitar así el
+  // parpadeo de fondo oscuro antes de que cargue la app.
+  var THEME_KEY = "tactica.tema";
   var SEEN_CAP = 9000;      // puzzles recordados como vistos antes de reciclar
   var HISTORY_CAP = 400;
 
@@ -13,7 +17,12 @@ window.Store = (function () {
     seen: [],
     records: { survival: 0, rush3: 0, rush5: 0, streak: 0 },
     stats: { solved: 0, failed: 0, byTheme: {}, days: {}, history: [] },
-    settings: { sound: true, coords: true, autoNext: true, animations: true },
+    settings: {
+      sound: true, coords: true, autoNext: true, animations: true,
+      theme: "auto",        // auto | light | dark
+      board: "verde",
+      pieces: "cburnett"
+    },
     lastPlayed: null,
     // última partida de supervivencia o contrarreloj, para poder repasarla:
     // [{ i: índice del puzzle, ok: si se acertó }]
@@ -123,6 +132,15 @@ window.Store = (function () {
     save();
   }
 
+  /** Cambia un ajuste y lo guarda. */
+  function setSetting(key, value) {
+    state.settings[key] = value;
+    if (key === "theme") {
+      try { window.localStorage.setItem(THEME_KEY, value); } catch (e) { /* modo privado */ }
+    }
+    save();
+  }
+
   function setRecord(key, value) {
     if (value > (state.records[key] || 0)) {
       state.records[key] = value;
@@ -149,7 +167,10 @@ window.Store = (function () {
   function reset() {
     state = clone(defaults);
     seenSet = {};
-    try { window.localStorage.removeItem(KEY); } catch (e) { /* ignorar */ }
+    try {
+      window.localStorage.removeItem(KEY);
+      window.localStorage.removeItem(THEME_KEY);
+    } catch (e) { /* ignorar */ }
   }
 
   return {
@@ -161,6 +182,7 @@ window.Store = (function () {
     markSeen: markSeen,
     setRating: setRating,
     setRecord: setRecord,
+    setSetting: setSetting,
     setLastRun: setLastRun,
     streak: streak,
     solvedToday: solvedToday,

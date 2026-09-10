@@ -19,6 +19,10 @@ sacados de la base de datos abierta de Lichess.
 | **Revisión** | Al terminar una partida de Supervivencia o Contrarreloj puedes repasar uno a uno los puzzles jugados, filtrando por los que fallaste, y volver a intentarlos sin prisa. |
 | **Progreso** | Evolución del rating, precisión por tema, récords y calendario de actividad. |
 
+En **Ajustes** se puede elegir tema claro u oscuro (o dejarlo en automático,
+siguiendo al sistema), entre seis colores de tablero y entre seis juegos de
+piezas.
+
 El nivel **Exigente** del entrenamiento sirve puzzles por encima de tu rating y
 mueve ese listón según vayas acertando, de modo que la exigencia se mantenga a
 medida que mejoras. Es el único nivel del entrenamiento que cuenta para tu
@@ -90,5 +94,20 @@ seguirán usando la versión antigua.
 ## Créditos y licencias
 
 - Puzzles: [base de datos abierta de Lichess](https://database.lichess.org/#puzzles) (CC0).
-- Piezas: juego «cburnett» de Colin M. L. Burnett (CC BY-SA 3.0).
 - Reglas del ajedrez: [chess.js](https://github.com/jhlywa/chess.js) 0.12.1 (BSD).
+- Juegos de piezas, todos tomados del
+  [repositorio de Lichess](https://github.com/lichess-org/lila/tree/master/public/piece):
+
+  | Juego | Autor | Licencia |
+  |---|---|---|
+  | Clásicas (cburnett) | Colin M. L. Burnett | GPLv2+ |
+  | Mérida | Armando Hernández Marroquín | GPLv2+ |
+  | Nítidas (chessnut) | Alexis Luengas | Apache 2.0 |
+  | Celtas | Maurizio Monge | MIT |
+  | Espaciales (spatial) | Maurizio Monge | MIT |
+  | Trazo (totoy) | Kosal Sen | CC BY 4.0 |
+
+  Las licencias están tomadas de
+  [COPYING.md de lila](https://github.com/lichess-org/lila/blob/master/COPYING.md).
+  Al añadir un juego nuevo hay que comprobarlas ahí: varios de los juegos
+  disponibles son CC BY-NC-SA, que prohíbe el uso comercial.

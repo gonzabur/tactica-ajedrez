@@ -58,6 +58,7 @@ window.Play = (function () {
 
     board = window.Board.create(els.host, {
       coords: window.Store.settings.coords,
+      pieces: window.Store.settings.pieces,
       onMove: function (from, to, promo) {
         window.Sound.unlock();
         player.onUserMove(from, to, promo);

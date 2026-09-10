@@ -1,5 +1,7 @@
 # Táctica
 
+**▶ https://gonzabur.github.io/tactica-ajedrez/**
+
 Aplicación web de puzzles de ajedrez, sin límite diario y sin conexión. Pensada
 primero para el iPhone: se toca para mover, se instala en la pantalla de inicio
 y funciona en el metro.
@@ -45,9 +47,13 @@ servidor.
 **En el Mac.** Doble clic en `Táctica.command`. Arranca un servidor local y abre
 el navegador. Para cerrarla, cierra la ventana de Terminal.
 
-**En el iPhone.** Abre la dirección donde esté publicada, dale a Compartir →
-«Añadir a pantalla de inicio». A partir de ahí se abre como una app, a pantalla
-completa y sin barra del navegador.
+**En el iPhone.** Abre https://gonzabur.github.io/tactica-ajedrez/ en Safari y
+dale a Compartir → «Añadir a pantalla de inicio». A partir de ahí se abre como
+una app, a pantalla completa y sin barra del navegador, y funciona sin conexión.
+
+**Publicar cambios.** `./tools/publicar.sh "descripción del cambio"`. Rehace
+`dist/`, recalcula la versión de caché del service worker y sube; GitHub tarda
+un minuto en servir la versión nueva.
 
 **Sin nada de lo anterior.** `dist/tactica.html` es la app entera en un solo
 fichero: se puede abrir con doble clic, copiar a un pendrive o guardar en

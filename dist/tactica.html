@@ -630,7 +630,13 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   letter-spacing: -0.01em;
 }
 .hud-item.danger .hud-value { color: var(--danger); }
-.hearts { color: var(--danger); letter-spacing: 2px; }
+.hearts {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--danger);
+}
+.heart { display: block; width: 17px; height: 17px; }
+/* La vida gastada deja su silueta punteada: el hueco sigue contando. */
+.heart.spent { color: var(--text-faint); }
 .hud-trend { font-size: 12px; font-weight: 600; }
 .hud-trend.up { color: var(--accent-strong); }
 .hud-trend.down { color: var(--danger); }
@@ -21635,20 +21641,18 @@ window.PuzzlePlayer = (function () {
       later(step, 200);
     }
 
-    /** Enseña solo la jugada que tocaba y da el puzzle por fallado. Es lo que
-     *  usan los modos rápidos: informa sin frenar la partida. */
-    function revealNext() {
-      if (finished || !puzzle || ply >= puzzle.moves.length) return;
+    /** Da el puzzle por fallado y pasa página sin destapar nada. Lo usan los
+     *  modos sin reintento: la solución se guarda para la revisión, que es
+     *  donde se puede mirar con calma. */
+    function fail() {
+      if (finished || !puzzle) return;
       finished = true;
       failedHere = true;
       lockBoard();
       clearTimers();
-      var expected = puzzle.moves[ply];
-      applyUci(expected, true);
-      board.flash(expected.slice(2, 4), "hint");
       later(function () {
-        if (handlers.onRevealed) handlers.onRevealed(puzzle);
-      }, 900);
+        if (handlers.onFailed) handlers.onFailed(puzzle);
+      }, 480);
     }
 
     /** Vuelve a la posición de partida del puzzle actual. */
@@ -21661,7 +21665,7 @@ window.PuzzlePlayer = (function () {
       onUserMove: onUserMove,
       hint: hint,
       reveal: reveal,
-      revealNext: revealNext,
+      fail: fail,
       restart: restart,
       stop: function () { clearTimers(); lockBoard(); finished = true; },
       get puzzle() { return puzzle; },
@@ -21894,6 +21898,33 @@ window.Modes = (function () {
 
   // --- Supervivencia y contrarreloj -------------------------------------
 
+  // El corazón va dibujado y no como carácter ♥ porque los perdidos se pintan
+  // con el borde punteado, y a un glifo de fuente no se le puede hacer eso.
+  var HEART = "M12 20.6l-1.3-1.2C5.4 14.8 2 11.7 2 8.1 2 5.4 4.2 3.2 6.9 3.2" +
+    "c1.6 0 3.1.7 4.1 1.9L12 6.3l1-1.2c1-1.2 2.5-1.9 4.1-1.9 2.7 0 4.9 2.2 4.9 4.9" +
+    " 0 3.6-3.4 6.7-8.7 11.3L12 20.6z";
+
+  /**
+   * Las vidas gastadas dejan su hueco marcado en vez de desaparecer, para que
+   * de un vistazo se lea cuántas quedan *de cuántas*.
+   */
+  function heartsHtml(left, total) {
+    var out = "";
+    for (var i = 0; i < total; i++) {
+      var spent = i >= left;
+      out += '<svg class="heart' + (spent ? " spent" : "") + '" viewBox="0 0 24 24">' +
+        '<path d="' + HEART + '" ' +
+        (spent
+          // guion casi nulo + punta redonda = puntos, no rayas
+          ? 'fill="none" stroke="currentColor" stroke-width="2.6" ' +
+            'stroke-dasharray="0.01 3.7" stroke-linecap="round"'
+          : 'fill="currentColor"') +
+        "/></svg>";
+    }
+    return '<span class="hearts" role="img" aria-label="' +
+      left + " de " + total + ' vidas">' + out + "</span>";
+  }
+
   /**
    * Escalada compartida: se arranca claramente por debajo del nivel del jugador
    * y cada acierto sube el listón, igual que el modo supervivencia de chess.com.
@@ -21943,10 +21974,7 @@ window.Modes = (function () {
       hud: function () {
         return [
           { label: "Resueltos", value: String(state.solved) },
-          { label: "Vidas",
-            value: state.lives > 0
-              ? '<span class="hearts">' + "♥".repeat(state.lives) + "</span>"
-              : "—",
+          { label: "Vidas", value: heartsHtml(state.lives, opts.lives),
             danger: state.lives <= 1 }
         ];
       },
@@ -22117,6 +22145,7 @@ window.Play = (function () {
       onWrong: onWrong,
       onSolved: onSolved,
       onRevealed: onRevealed,
+      onFailed: onRevealed,
       onProgress: function () { setStatus("¡Bien! Sigue.", "good"); }
     });
 
@@ -22165,8 +22194,8 @@ window.Play = (function () {
       setStatus("No es esa. Prueba otra vez.", "bad");
       return;
     }
-    setStatus("Fallo. La jugada era esta.", "bad");
-    player.revealNext();
+    setStatus("Fallo. Podrás repasarlo al terminar.", "bad");
+    player.fail();
   }
 
   function onSolved(res) {

@@ -203,20 +203,18 @@ window.PuzzlePlayer = (function () {
       later(step, 200);
     }
 
-    /** Enseña solo la jugada que tocaba y da el puzzle por fallado. Es lo que
-     *  usan los modos rápidos: informa sin frenar la partida. */
-    function revealNext() {
-      if (finished || !puzzle || ply >= puzzle.moves.length) return;
+    /** Da el puzzle por fallado y pasa página sin destapar nada. Lo usan los
+     *  modos sin reintento: la solución se guarda para la revisión, que es
+     *  donde se puede mirar con calma. */
+    function fail() {
+      if (finished || !puzzle) return;
       finished = true;
       failedHere = true;
       lockBoard();
       clearTimers();
-      var expected = puzzle.moves[ply];
-      applyUci(expected, true);
-      board.flash(expected.slice(2, 4), "hint");
       later(function () {
-        if (handlers.onRevealed) handlers.onRevealed(puzzle);
-      }, 900);
+        if (handlers.onFailed) handlers.onFailed(puzzle);
+      }, 480);
     }
 
     /** Vuelve a la posición de partida del puzzle actual. */
@@ -229,7 +227,7 @@ window.PuzzlePlayer = (function () {
       onUserMove: onUserMove,
       hint: hint,
       reveal: reveal,
-      revealNext: revealNext,
+      fail: fail,
       restart: restart,
       stop: function () { clearTimers(); lockBoard(); finished = true; },
       get puzzle() { return puzzle; },

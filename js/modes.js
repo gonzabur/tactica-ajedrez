@@ -214,6 +214,33 @@ window.Modes = (function () {
 
   // --- Supervivencia y contrarreloj -------------------------------------
 
+  // El corazón va dibujado y no como carácter ♥ porque los perdidos se pintan
+  // con el borde punteado, y a un glifo de fuente no se le puede hacer eso.
+  var HEART = "M12 20.6l-1.3-1.2C5.4 14.8 2 11.7 2 8.1 2 5.4 4.2 3.2 6.9 3.2" +
+    "c1.6 0 3.1.7 4.1 1.9L12 6.3l1-1.2c1-1.2 2.5-1.9 4.1-1.9 2.7 0 4.9 2.2 4.9 4.9" +
+    " 0 3.6-3.4 6.7-8.7 11.3L12 20.6z";
+
+  /**
+   * Las vidas gastadas dejan su hueco marcado en vez de desaparecer, para que
+   * de un vistazo se lea cuántas quedan *de cuántas*.
+   */
+  function heartsHtml(left, total) {
+    var out = "";
+    for (var i = 0; i < total; i++) {
+      var spent = i >= left;
+      out += '<svg class="heart' + (spent ? " spent" : "") + '" viewBox="0 0 24 24">' +
+        '<path d="' + HEART + '" ' +
+        (spent
+          // guion casi nulo + punta redonda = puntos, no rayas
+          ? 'fill="none" stroke="currentColor" stroke-width="2.6" ' +
+            'stroke-dasharray="0.01 3.7" stroke-linecap="round"'
+          : 'fill="currentColor"') +
+        "/></svg>";
+    }
+    return '<span class="hearts" role="img" aria-label="' +
+      left + " de " + total + ' vidas">' + out + "</span>";
+  }
+
   /**
    * Escalada compartida: se arranca claramente por debajo del nivel del jugador
    * y cada acierto sube el listón, igual que el modo supervivencia de chess.com.
@@ -263,10 +290,7 @@ window.Modes = (function () {
       hud: function () {
         return [
           { label: "Resueltos", value: String(state.solved) },
-          { label: "Vidas",
-            value: state.lives > 0
-              ? '<span class="hearts">' + "♥".repeat(state.lives) + "</span>"
-              : "—",
+          { label: "Vidas", value: heartsHtml(state.lives, opts.lives),
             danger: state.lives <= 1 }
         ];
       },

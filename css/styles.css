@@ -600,7 +600,13 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   letter-spacing: -0.01em;
 }
 .hud-item.danger .hud-value { color: var(--danger); }
-.hearts { color: var(--danger); letter-spacing: 2px; }
+.hearts {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--danger);
+}
+.heart { display: block; width: 17px; height: 17px; }
+/* La vida gastada deja su silueta punteada: el hueco sigue contando. */
+.heart.spent { color: var(--text-faint); }
 .hud-trend { font-size: 12px; font-weight: 600; }
 .hud-trend.up { color: var(--accent-strong); }
 .hud-trend.down { color: var(--danger); }

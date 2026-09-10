@@ -16,7 +16,7 @@ sacados de la base de datos abierta de Lichess.
 | **Clasificado** | Puzzles ajustados a tu rating, que sube o baja según aciertes. Es el que mide tu nivel. |
 | **Entrenamiento** | Eliges tema (horquilla, clavada, finales de torres, mate en 2, aperturas…) y dificultad. Con pistas y solución. |
 | **Aleatorio** | Dentro de Entrenamiento: un motivo distinto en cada puzzle y sin saber cuál toca. Recorre los 39 motivos antes de repetir ninguno, así que también salen los raros. |
-| **Revisión** | Al terminar una partida de Supervivencia o Contrarreloj puedes repasar uno a uno los puzzles jugados, filtrando por los que fallaste, y volver a intentarlos sin prisa. |
+| **Revisión** | Al terminar una partida de Supervivencia o Contrarreloj puedes repasar uno a uno los puzzles jugados, filtrando por los que fallaste, y volver a intentarlos sin prisa. Al fallar durante la partida **no se enseña la solución**, precisamente para que el repaso siga siendo un examen. |
 | **Progreso** | Evolución del rating, precisión por tema, récords y calendario de actividad. |
 
 En **Ajustes** se puede elegir tema claro u oscuro (o dejarlo en automático,

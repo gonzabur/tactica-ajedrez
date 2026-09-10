@@ -71,6 +71,7 @@ window.Play = (function () {
       onWrong: onWrong,
       onSolved: onSolved,
       onRevealed: onRevealed,
+      onFailed: onRevealed,
       onProgress: function () { setStatus("¡Bien! Sigue.", "good"); }
     });
 
@@ -119,8 +120,8 @@ window.Play = (function () {
       setStatus("No es esa. Prueba otra vez.", "bad");
       return;
     }
-    setStatus("Fallo. La jugada era esta.", "bad");
-    player.revealNext();
+    setStatus("Fallo. Podrás repasarlo al terminar.", "bad");
+    player.fail();
   }
 
   function onSolved(res) {

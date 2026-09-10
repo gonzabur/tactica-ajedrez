@@ -338,16 +338,32 @@ window.Modes = (function () {
    * empezando por el que se indique. Aquí no hay prisa ni vidas: se puede
    * volver a intentar, pedir pista y ver la solución, que es de lo que se
    * trata al repasar un fallo.
+   *
+   * `filter` debe coincidir con el que esté aplicado en la lista: si se entra
+   * desde "Solo fallos", "Siguiente" tiene que llevar al siguiente fallo y no
+   * al siguiente de toda la tanda.
+   *
+   * `startAt` es la posición dentro de la tanda completa, que es como los
+   * enlaza la lista, y aquí se traduce a la posición dentro del recorrido.
    */
-  function review(startAt) {
+  function review(startAt, filter) {
     var run = window.Store.state.lastRun || [];
-    var cursor = Math.max(0, Math.min(startAt | 0, run.length - 1));
+    var onlyFailed = filter === "fallos";
+
+    // posiciones de la tanda que forman el recorrido, en orden
+    var route = [];
+    for (var i = 0; i < run.length; i++) {
+      if (!onlyFailed || !run[i].ok) route.push(i);
+    }
+
+    var at = 0;
+    while (at < route.length - 1 && route[at] < (startAt | 0)) at++;
     var showing = -1;
 
     return {
       id: "review",
       title: "Revisión",
-      subtitle: "Última partida",
+      subtitle: onlyFailed ? "Solo los fallados" : "Última partida",
       allowRetry: true,
       allowHint: true,
       autoNext: false,
@@ -357,9 +373,9 @@ window.Modes = (function () {
       backTo: "#/revision",
 
       next: function () {
-        if (cursor >= run.length) return null;
-        showing = cursor++;
-        return window.Data.get(run[showing].i);
+        if (at >= route.length) return null;
+        showing = at++;
+        return window.Data.get(run[route[showing]].i);
       },
 
       // repasar no vuelve a contar: esos puzzles ya se anotaron al jugarlos
@@ -368,9 +384,9 @@ window.Modes = (function () {
       onExhausted: function () { window.location.hash = "#/revision"; },
 
       hud: function () {
-        var entry = run[showing] || {};
+        var entry = run[route[showing]] || {};
         return [
-          { label: "Puzzle", value: (showing + 1) + " de " + run.length },
+          { label: "Puzzle", value: (showing + 1) + " de " + route.length },
           { label: "En la partida", value: entry.ok ? "Acertaste" : "Fallaste",
             danger: !entry.ok }
         ];

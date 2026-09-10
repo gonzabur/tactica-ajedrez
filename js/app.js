@@ -273,8 +273,10 @@ window.App = (function () {
       if (visibles.indexOf(entry) === -1) return;
       var puzzle = window.Data.get(entry.i);
       var tema = window.THEMES.ranked(puzzle.themes)[0];
+      // el filtro viaja en la ruta: así "Siguiente" recorre lo mismo que la lista
+      var sufijo = runFilter === "fallos" ? "/fallos" : "";
       html += '<button class="run-item ' + (entry.ok ? "ok" : "ko") + '" ' +
-        'data-nav="#/revision/' + i + '">' +
+        'data-nav="#/revision/' + i + sufijo + '">' +
         '<span class="run-num">' + (i + 1) + "</span>" +
         '<span class="run-mark" aria-hidden="true">' + (entry.ok ? "✓" : "✗") + "</span>" +
         '<span class="run-text"><b>' + esc(tema ? window.THEMES.name(tema) : "Puzzle") + "</b>" +
@@ -541,7 +543,8 @@ window.App = (function () {
       case "tema":
         return parts[2] ? window.Modes.theme(parts[1], parts[2]) : null;
       case "revision":
-        return parts[1] ? window.Modes.review(parseInt(parts[1], 10)) : null;
+        // parts[2] es el filtro con el que se entró desde la lista
+        return parts[1] ? window.Modes.review(parseInt(parts[1], 10), parts[2]) : null;
       default: return null;
     }
   }

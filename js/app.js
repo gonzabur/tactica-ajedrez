@@ -388,6 +388,33 @@ window.App = (function () {
       '<i class="hm l2"></i><i class="hm l3"></i><i class="hm l4"></i><span>más</span></div>';
   }
 
+  /**
+   * Quita el zoom de pellizco.
+   *
+   * Safari de iOS ignora `user-scalable=no` en el viewport desde iOS 10, así
+   * que la única vía es cancelar los gestos. Se cancelan los eventos propios
+   * de Safari y, por si acaso, cualquier movimiento con más de un dedo. El
+   * desplazamiento normal, que es de un solo dedo, no se toca.
+   *
+   * En una app de tablero el pellizco casi nunca es intencionado: se dispara
+   * al apoyar el pulgar mientras se mueve una pieza, y deja la partida a medio
+   * ampliar. La contrapartida es que tampoco se puede ampliar a propósito;
+   * quien lo necesite tiene el zoom del sistema en Ajustes de iOS.
+   */
+  function blockPinchZoom() {
+    var stop = function (ev) { ev.preventDefault(); };
+
+    // gestos de pellizco de Safari
+    document.addEventListener("gesturestart", stop, { passive: false });
+    document.addEventListener("gesturechange", stop, { passive: false });
+    document.addEventListener("gestureend", stop, { passive: false });
+
+    // y el pellizco visto como dos dedos moviéndose
+    document.addEventListener("touchmove", function (ev) {
+      if (ev.touches && ev.touches.length > 1) ev.preventDefault();
+    }, { passive: false });
+  }
+
   // --- aspecto -----------------------------------------------------------
 
   var BOARDS = [
@@ -585,6 +612,7 @@ window.App = (function () {
       return;
     }
 
+    blockPinchZoom();
     applyAppearance();
     // en modo automático hay que reaccionar si el sistema cambia de tema
     // mientras la app está abierta

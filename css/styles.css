@@ -710,8 +710,22 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .actions .btn { flex: 1; }
 .hint-note { font-size: 12.5px; color: var(--text-faint); padding: 8px 0; }
 
-.puzzle-info { text-align: center; margin-bottom: 10px; }
-.chips { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+/* Altura fija y contenido recortado: el hueco mide siempre lo mismo, con o
+   sin etiquetas, y así el tablero no se mueve al resolver el puzzle. */
+.puzzle-info {
+  height: 68px;
+  overflow: hidden;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.chips {
+  display: flex; gap: 6px;
+  justify-content: center;
+  flex-wrap: nowrap;              /* si no caben, se desplazan de lado */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
 .chip {
   font-size: 11.5px; font-weight: 600;
   background: rgba(var(--accent-rgb), .16);
@@ -722,6 +736,11 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .theme-desc {
   font-size: 12.5px; color: var(--text-faint);
   margin: 8px 0 0; line-height: 1.45;
+  /* como mucho dos líneas, para que la altura del hueco no se dispare */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* --- fin de partida -------------------------------------------------------- */

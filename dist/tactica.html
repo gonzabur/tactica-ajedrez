@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#12141a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -740,8 +740,22 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .actions .btn { flex: 1; }
 .hint-note { font-size: 12.5px; color: var(--text-faint); padding: 8px 0; }
 
-.puzzle-info { text-align: center; margin-bottom: 10px; }
-.chips { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+/* Altura fija y contenido recortado: el hueco mide siempre lo mismo, con o
+   sin etiquetas, y así el tablero no se mueve al resolver el puzzle. */
+.puzzle-info {
+  height: 68px;
+  overflow: hidden;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.chips {
+  display: flex; gap: 6px;
+  justify-content: center;
+  flex-wrap: nowrap;              /* si no caben, se desplazan de lado */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
 .chip {
   font-size: 11.5px; font-weight: 600;
   background: rgba(var(--accent-rgb), .16);
@@ -752,6 +766,11 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .theme-desc {
   font-size: 12.5px; color: var(--text-faint);
   margin: 8px 0 0; line-height: 1.45;
+  /* como mucho dos líneas, para que la altura del hueco no se dispare */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* --- fin de partida -------------------------------------------------------- */
@@ -22311,6 +22330,10 @@ window.Play = (function () {
     "</div>" +
     '<footer class="play-foot">' +
       '<p class="status"></p>' +
+      // El hueco de las etiquetas del puzzle existe desde el principio, aunque
+      // esté vacío: si apareciera al resolver, el pie crecería y el tablero se
+      // recolocaría hacia arriba justo cuando estás mirándolo.
+      '<div class="puzzle-info"></div>' +
       '<div class="actions"></div>' +
     '</footer>' +
     '<div class="gameover" hidden></div>';
@@ -22329,6 +22352,7 @@ window.Play = (function () {
       hud: root.querySelector(".hud"),
       host: root.querySelector(".board-host"),
       status: root.querySelector(".status"),
+      info: root.querySelector(".puzzle-info"),
       actions: root.querySelector(".actions"),
       gameover: root.querySelector(".gameover"),
       movebar: root.querySelector(".movebar"),
@@ -22544,6 +22568,7 @@ window.Play = (function () {
     els.actions.innerHTML = html;
 
     if (phase === "solved" && puzzle) renderPuzzleInfo(puzzle);
+    else els.info.innerHTML = "";
 
     els.actions.querySelectorAll("[data-act]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -22560,21 +22585,16 @@ window.Play = (function () {
     var interesting = window.THEMES.ranked(puzzle.themes).slice(0, 3);
     if (!interesting.length) return;
 
-    var info = document.createElement("div");
-    info.className = "puzzle-info";
-    info.innerHTML =
+    els.info.innerHTML =
       '<div class="chips">' + interesting.map(function (t) {
         return '<span class="chip">' + window.THEMES.name(t) + "</span>";
       }).join("") + '<span class="chip muted">' + puzzle.rating + "</span></div>" +
       '<p class="theme-desc">' + window.THEMES.desc(interesting[0]) + "</p>";
-    els.actions.parentNode.insertBefore(info, els.actions);
   }
 
   function setStatus(text, kind) {
     els.status.textContent = text;
     els.status.className = "status " + (kind || "");
-    var info = root.querySelector(".puzzle-info");
-    if (info) info.remove();
   }
 
   // --- reloj -------------------------------------------------------------
@@ -23053,6 +23073,33 @@ window.App = (function () {
       '<i class="hm l2"></i><i class="hm l3"></i><i class="hm l4"></i><span>más</span></div>';
   }
 
+  /**
+   * Quita el zoom de pellizco.
+   *
+   * Safari de iOS ignora `user-scalable=no` en el viewport desde iOS 10, así
+   * que la única vía es cancelar los gestos. Se cancelan los eventos propios
+   * de Safari y, por si acaso, cualquier movimiento con más de un dedo. El
+   * desplazamiento normal, que es de un solo dedo, no se toca.
+   *
+   * En una app de tablero el pellizco casi nunca es intencionado: se dispara
+   * al apoyar el pulgar mientras se mueve una pieza, y deja la partida a medio
+   * ampliar. La contrapartida es que tampoco se puede ampliar a propósito;
+   * quien lo necesite tiene el zoom del sistema en Ajustes de iOS.
+   */
+  function blockPinchZoom() {
+    var stop = function (ev) { ev.preventDefault(); };
+
+    // gestos de pellizco de Safari
+    document.addEventListener("gesturestart", stop, { passive: false });
+    document.addEventListener("gesturechange", stop, { passive: false });
+    document.addEventListener("gestureend", stop, { passive: false });
+
+    // y el pellizco visto como dos dedos moviéndose
+    document.addEventListener("touchmove", function (ev) {
+      if (ev.touches && ev.touches.length > 1) ev.preventDefault();
+    }, { passive: false });
+  }
+
   // --- aspecto -----------------------------------------------------------
 
   var BOARDS = [
@@ -23250,6 +23297,7 @@ window.App = (function () {
       return;
     }
 
+    blockPinchZoom();
     applyAppearance();
     // en modo automático hay que reaccionar si el sistema cambia de tema
     // mientras la app está abierta

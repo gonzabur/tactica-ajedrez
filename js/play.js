@@ -29,6 +29,10 @@ window.Play = (function () {
     "</div>" +
     '<footer class="play-foot">' +
       '<p class="status"></p>' +
+      // El hueco de las etiquetas del puzzle existe desde el principio, aunque
+      // esté vacío: si apareciera al resolver, el pie crecería y el tablero se
+      // recolocaría hacia arriba justo cuando estás mirándolo.
+      '<div class="puzzle-info"></div>' +
       '<div class="actions"></div>' +
     '</footer>' +
     '<div class="gameover" hidden></div>';
@@ -47,6 +51,7 @@ window.Play = (function () {
       hud: root.querySelector(".hud"),
       host: root.querySelector(".board-host"),
       status: root.querySelector(".status"),
+      info: root.querySelector(".puzzle-info"),
       actions: root.querySelector(".actions"),
       gameover: root.querySelector(".gameover"),
       movebar: root.querySelector(".movebar"),
@@ -262,6 +267,7 @@ window.Play = (function () {
     els.actions.innerHTML = html;
 
     if (phase === "solved" && puzzle) renderPuzzleInfo(puzzle);
+    else els.info.innerHTML = "";
 
     els.actions.querySelectorAll("[data-act]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -278,21 +284,16 @@ window.Play = (function () {
     var interesting = window.THEMES.ranked(puzzle.themes).slice(0, 3);
     if (!interesting.length) return;
 
-    var info = document.createElement("div");
-    info.className = "puzzle-info";
-    info.innerHTML =
+    els.info.innerHTML =
       '<div class="chips">' + interesting.map(function (t) {
         return '<span class="chip">' + window.THEMES.name(t) + "</span>";
       }).join("") + '<span class="chip muted">' + puzzle.rating + "</span></div>" +
       '<p class="theme-desc">' + window.THEMES.desc(interesting[0]) + "</p>";
-    els.actions.parentNode.insertBefore(info, els.actions);
   }
 
   function setStatus(text, kind) {
     els.status.textContent = text;
     els.status.className = "status " + (kind || "");
-    var info = root.querySelector(".puzzle-info");
-    if (info) info.remove();
   }
 
   // --- reloj -------------------------------------------------------------

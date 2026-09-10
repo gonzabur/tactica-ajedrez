@@ -39,6 +39,12 @@ esa posición; mientras se mira hacia atrás el tablero no admite jugadas y la
 flecha de avanzar se pinta de color, que es el camino de vuelta. También
 funcionan las flechas del teclado.
 
+El zoom de pellizco está desactivado a propósito: en un tablero casi nunca es
+intencionado y se dispara al apoyar el pulgar mientras se mueve una pieza. Como
+Safari de iOS ignora `user-scalable=no` desde iOS 10, se hace cancelando los
+gestos en `blockPinchZoom()` (`js/app.js`). Quien necesite ampliar tiene el zoom
+del sistema en los ajustes de accesibilidad de iOS.
+
 Todo el progreso se guarda en el navegador del dispositivo. No hay cuentas ni
 servidor.
 

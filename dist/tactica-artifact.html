@@ -263,22 +263,41 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .theme-meta { display: block; font-size: 11px; color: var(--text-faint); margin-top: 4px; }
 
 .level-list { display: flex; flex-direction: column; gap: 9px; }
+
+/* Título arriba y descripción debajo: en móvil una sola línea no cabe. */
 .level-item {
-  display: flex; align-items: center; gap: 12px;
-  width: 100%; padding: 15px 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 12px;
+  width: 100%; padding: 14px 16px;
   border: 1px solid var(--line); border-radius: var(--radius-sm);
   background: var(--surface);
   text-align: left; cursor: pointer;
 }
 .level-item:active { border-color: var(--accent); }
-.level-item b { font-size: 15.5px; font-weight: 620; }
-.level-item small { flex: 1; color: var(--text-dim); font-size: 12.5px; }
-.level-item > span { color: var(--text-faint); font-size: 18px; }
-
-@media (max-width: 360px) {
-  .level-item { flex-wrap: wrap; }
-  .level-item small { flex-basis: 100%; }
+.level-item b { grid-column: 1; font-size: 15.5px; font-weight: 620; }
+.level-item small {
+  grid-column: 1;
+  color: var(--text-dim); font-size: 12.5px; line-height: 1.4;
 }
+.level-item > span {
+  grid-column: 2; grid-row: 1 / -1;
+  align-self: center;
+  color: var(--text-faint); font-size: 18px;
+}
+
+/* El nivel recomendado se distingue sin gritar. */
+.level-item.featured { border-color: var(--accent); }
+.level-item b em {
+  font-style: normal;
+  font-size: 9.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+  color: var(--accent-ink); background: var(--accent);
+  padding: 3px 7px; border-radius: 20px;
+  margin-left: 8px; vertical-align: 2px;
+}
+
+.mode-random .mode-icon { color: var(--gold); }
 
 /* --- revisión de la última partida ---------------------------------------- */
 
@@ -21546,21 +21565,93 @@ window.Modes = (function () {
 
   // --- Entrenamiento por tema -------------------------------------------
 
+  var RANDOM_ID = "aleatorio";
+
+  /**
+   * Niveles de dificultad. "Exigente" es el interesante: en vez de fijar un
+   * rating, apunta un escalón por encima del tuyo y va moviendo ese escalón
+   * según cómo lo lleves, de modo que la exigencia se mantenga a medida que
+   * mejoras. Además cuenta para tu rating, para que el progreso sea real y no
+   * se pierda al cerrar la app.
+   */
   var LEVELS = {
-    facil:   { name: "Fácil",     span: 250, at: function (r) { return Math.max(600, r - 400); } },
-    medio:   { name: "A tu nivel", span: 180, at: function (r) { return r; } },
-    dificil: { name: "Difícil",   span: 220, at: function (r) { return Math.min(2900, r + 350); } },
-    todos:   { name: "Todos",     span: 1200, at: function (r) { return r; } }
+    exigente: { name: "Exigente", adaptive: true, span: 130 },
+    facil:    { name: "Fácil",    span: 250,  at: function (r) { return Math.max(600, r - 400); } },
+    medio:    { name: "A tu nivel", span: 180, at: function (r) { return r; } },
+    todos:    { name: "Mezclado", span: 1200, at: function (r) { return r; } }
   };
 
+  // Cuánto se aprieta al empezar y cuánto se mueve el listón con cada
+  // resultado.
+  //
+  // El listón deja de moverse cuando aciertas UP/(UP+DOWN) de las veces, así
+  // que esa fracción es la que fija la exigencia real: 25 y 18 la dejan en el
+  // 42%. Traducido a rating, son unos +57 puntos por encima del tuyo, que es
+  // donde se aprende: cuesta, pero sale. Si subes o bajas estos números,
+  // comprueba antes esa fracción; con un DOWN mayor que UP el listón acaba
+  // cayendo por debajo de tu nivel y el modo deja de ser exigente.
+  //
+  // El mínimo de 0 es la garantía de que nunca sirve puzzles más fáciles que
+  // tu rating, por mala que sea la racha.
+  var CHALLENGE_START = 60;
+  var CHALLENGE_UP = 25;
+  var CHALLENGE_DOWN = 18;
+  var CHALLENGE_MIN = 0;
+  var CHALLENGE_MAX = 300;
+
+  /**
+   * Motivos que entran en el modo aleatorio: los que enseñan un truco. Se
+   * dejan fuera los de fase (aperturas, finales) y los de longitud, que no
+   * son patrones que reconocer sino descripciones de la posición.
+   */
+  function motifPool() {
+    var pool = [];
+    window.THEMES.groups.forEach(function (group) {
+      if (group.id === "fases" || group.id === "longitud") return;
+      group.themes.forEach(function (t) {
+        if (window.Data.themeCount(t) > 0) pool.push(t);
+      });
+    });
+    return pool;
+  }
+
+  function shuffled(list) {
+    var out = list.slice();
+    for (var i = out.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = out[i]; out[i] = out[j]; out[j] = tmp;
+    }
+    return out;
+  }
+
+  /**
+   * Entrenamiento sobre un tema concreto, o sobre uno distinto cada vez si se
+   * pasa "aleatorio". En ese caso se recorre toda la baraja de motivos antes
+   * de repetir ninguno, así que también salen los raros.
+   */
   function theme(themeId, levelId) {
-    var level = LEVELS[levelId] || LEVELS.medio;
+    var level = LEVELS[levelId] || LEVELS.exigente;
+    var random = themeId === RANDOM_ID;
     var exclude = exclusions();
-    var session = { solved: 0, failed: 0 };
+    var session = { solved: 0, failed: 0, delta: 0 };
+    var challenge = CHALLENGE_START;
+    var deck = [];
+
+    function nextMotif() {
+      if (!deck.length) deck = shuffled(motifPool());
+      return deck.pop();
+    }
+
+    function target() {
+      var rating = window.Store.state.rating;
+      if (!level.adaptive) return level.at(rating);
+      return Math.max(window.Rating.MIN,
+        Math.min(window.Rating.MAX, rating + challenge));
+    }
 
     return {
-      id: "theme",
-      title: window.THEMES.name(themeId),
+      id: random ? "random" : "theme",
+      title: random ? "Aleatorio" : window.THEMES.name(themeId),
       subtitle: level.name,
       themeId: themeId,
       allowRetry: true,
@@ -21568,13 +21659,13 @@ window.Modes = (function () {
       autoNext: false,
       lives: 0,
       timed: 0,
-      affectsRating: false,
+      affectsRating: !!level.adaptive,
 
       next: function () {
         var puzzle = window.Data.pick({
-          rating: level.at(window.Store.state.rating),
+          rating: target(),
           span: level.span,
-          theme: themeId,
+          theme: random ? nextMotif() : themeId,
           exclude: exclude
         });
         if (puzzle) exclude[puzzle.index] = 1;
@@ -21584,11 +21675,35 @@ window.Modes = (function () {
       result: function (res) {
         if (res.clean) session.solved++; else session.failed++;
         window.Store.record(res.puzzle, res.clean);
-        return { over: false };
+
+        var out = { over: false };
+        if (level.adaptive) {
+          // el listón se mueve con el resultado, para no dejarte ni ahogado
+          // ni cómodo
+          challenge = Math.max(CHALLENGE_MIN, Math.min(CHALLENGE_MAX,
+            challenge + (res.clean ? CHALLENGE_UP : -CHALLENGE_DOWN)));
+
+          var st = window.Store.state;
+          var up = window.Rating.update(st.rating, res.puzzle.rating,
+                                        res.clean ? 1 : 0, st.solvedCount);
+          window.Store.setRating(up.rating);
+          st.solvedCount++;
+          session.delta += up.delta;
+          out.delta = up.delta;
+        }
+        window.Store.save();
+        return out;
       },
 
       hud: function () {
         var total = session.solved + session.failed;
+        if (level.adaptive) {
+          return [
+            { label: "Tu rating", value: String(window.Store.state.rating),
+              trend: session.delta },
+            { label: "Sesión", value: session.solved + "/" + total }
+          ];
+        }
         return [
           { label: "Resueltos", value: String(session.solved) },
           { label: "Acierto", value: total ? Math.round(session.solved / total * 100) + "%" : "—" }
@@ -21743,7 +21858,7 @@ window.Modes = (function () {
 
   return {
     rated: rated, theme: theme, survival: survival, rush: rush,
-    review: review, levels: LEVELS
+    review: review, levels: LEVELS, randomId: RANDOM_ID, motifPool: motifPool
   };
 })();
 
@@ -22201,6 +22316,14 @@ window.App = (function () {
     var html = backHeader("Entrenamiento");
     html += '<p class="lead">Elige qué quieres practicar. Cada bloque agrupa puzzles con el mismo motivo, para que el patrón se te quede grabado.</p>';
 
+    // El aleatorio va primero y destacado: es el que más se parece a jugar.
+    html += '<button class="mode-card mode-random" data-nav="#/tema/aleatorio">' +
+      '<span class="mode-icon" aria-hidden="true">⚄</span>' +
+      '<span class="mode-text"><b>Aleatorio</b>' +
+      "<small>Un motivo distinto cada vez, sin saber cuál toca</small></span>" +
+      '<span class="mode-badge">Recomendado</span></button>' +
+      '<h2 class="section-title">O elige un motivo concreto</h2>';
+
     window.THEMES.groups.forEach(function (group) {
       var items = group.themes.filter(function (t) { return window.Data.themeCount(t) > 0; });
       if (!items.length) return;
@@ -22223,6 +22346,7 @@ window.App = (function () {
   }
 
   function themeDetail(themeId) {
+    if (themeId === window.Modes.randomId) { randomDetail(); return; }
     if (!window.THEMES.labels[themeId]) { go("#/temas"); return; }
     var stats = window.Store.state.stats.byTheme[themeId];
     var total = stats ? stats.ok + stats.ko : 0;
@@ -22235,20 +22359,46 @@ window.App = (function () {
         '<div><b>' + (stats ? stats.ok : 0) + "</b><span>resueltos</span></div>" +
         '<div><b>' + (total ? Math.round(stats.ok / total * 100) + "%" : "—") + "</b><span>acierto</span></div>" +
       "</div>" +
-      "<h2 class=\"section-title\">Dificultad</h2>" +
-      '<div class="level-list">' +
-        levelButton(themeId, "facil", "Fácil", "Por debajo de tu nivel, para coger patrón") +
-        levelButton(themeId, "medio", "A tu nivel", "Ajustado a tu rating actual") +
-        levelButton(themeId, "dificil", "Difícil", "Un escalón por encima") +
-        levelButton(themeId, "todos", "Mezclado", "De todo, sin filtrar por dificultad") +
-      "</div>"
+      levelSection(themeId)
     );
     wireNav();
   }
 
-  function levelButton(themeId, level, name, desc) {
-    return '<button class="level-item" data-nav="#/tema/' + themeId + "/" + level + '">' +
-      "<b>" + esc(name) + "</b><small>" + esc(desc) + "</small><span>›</span></button>";
+  /** El modo aleatorio no tiene tema propio, así que se describe aparte. */
+  function randomDetail() {
+    var st = window.Store.state;
+    screen("screen-list",
+      backHeader("Aleatorio", "#/temas") +
+      '<p class="lead">Un motivo distinto en cada puzzle y sin saber cuál toca. Es lo más parecido a una partida de verdad: ahí tampoco te avisan de que viene una clavada. Antes de repetir motivo pasan todos los demás, así que también salen los raros.</p>' +
+      '<div class="stat-strip">' +
+        "<div><b>" + window.Modes.motifPool().length + "</b><span>motivos</span></div>" +
+        "<div><b>" + st.rating + "</b><span>tu rating</span></div>" +
+        "<div><b>" + st.stats.solved + "</b><span>resueltos</span></div>" +
+      "</div>" +
+      levelSection(window.Modes.randomId)
+    );
+    wireNav();
+  }
+
+  function levelSection(themeId) {
+    return '<h2 class="section-title">Dificultad</h2>' +
+      '<div class="level-list">' +
+        levelButton(themeId, "exigente", "Exigente",
+          "Empieza por encima de tu nivel y se mueve según aciertes. Cuenta para tu rating.", true) +
+        levelButton(themeId, "facil", "Fácil",
+          "Por debajo de tu nivel, para coger el patrón") +
+        levelButton(themeId, "medio", "A tu nivel",
+          "Ajustado a tu rating actual") +
+        levelButton(themeId, "todos", "Mezclado",
+          "De todo, sin filtrar por dificultad") +
+      "</div>";
+  }
+
+  function levelButton(themeId, level, name, desc, featured) {
+    return '<button class="level-item' + (featured ? " featured" : "") + '" ' +
+      'data-nav="#/tema/' + themeId + "/" + level + '">' +
+      "<b>" + esc(name) + (featured ? "<em>recomendado</em>" : "") + "</b>" +
+      "<small>" + esc(desc) + "</small><span>›</span></button>";
   }
 
   // --- contrarreloj ------------------------------------------------------

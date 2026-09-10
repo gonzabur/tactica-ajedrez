@@ -15,8 +15,16 @@ sacados de la base de datos abierta de Lichess.
 | **Contrarreloj** | Lo mismo con reloj de 3 o 5 minutos. |
 | **Clasificado** | Puzzles ajustados a tu rating, que sube o baja según aciertes. Es el que mide tu nivel. |
 | **Entrenamiento** | Eliges tema (horquilla, clavada, finales de torres, mate en 2, aperturas…) y dificultad. Con pistas y solución. |
+| **Aleatorio** | Dentro de Entrenamiento: un motivo distinto en cada puzzle y sin saber cuál toca. Recorre los 39 motivos antes de repetir ninguno, así que también salen los raros. |
 | **Revisión** | Al terminar una partida de Supervivencia o Contrarreloj puedes repasar uno a uno los puzzles jugados, filtrando por los que fallaste, y volver a intentarlos sin prisa. |
 | **Progreso** | Evolución del rating, precisión por tema, récords y calendario de actividad. |
+
+El nivel **Exigente** del entrenamiento sirve puzzles por encima de tu rating y
+mueve ese listón según vayas acertando, de modo que la exigencia se mantenga a
+medida que mejoras. Es el único nivel del entrenamiento que cuenta para tu
+rating. En equilibrio acierta alrededor del 40% y sirve puzzles unos 75 puntos
+por encima de tu nivel; los números están en `CHALLENGE_*`, en `js/modes.js`,
+con la explicación de por qué son esos.
 
 Todo el progreso se guarda en el navegador del dispositivo. No hay cuentas ni
 servidor.

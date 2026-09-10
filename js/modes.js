@@ -63,21 +63,93 @@ window.Modes = (function () {
 
   // --- Entrenamiento por tema -------------------------------------------
 
+  var RANDOM_ID = "aleatorio";
+
+  /**
+   * Niveles de dificultad. "Exigente" es el interesante: en vez de fijar un
+   * rating, apunta un escalón por encima del tuyo y va moviendo ese escalón
+   * según cómo lo lleves, de modo que la exigencia se mantenga a medida que
+   * mejoras. Además cuenta para tu rating, para que el progreso sea real y no
+   * se pierda al cerrar la app.
+   */
   var LEVELS = {
-    facil:   { name: "Fácil",     span: 250, at: function (r) { return Math.max(600, r - 400); } },
-    medio:   { name: "A tu nivel", span: 180, at: function (r) { return r; } },
-    dificil: { name: "Difícil",   span: 220, at: function (r) { return Math.min(2900, r + 350); } },
-    todos:   { name: "Todos",     span: 1200, at: function (r) { return r; } }
+    exigente: { name: "Exigente", adaptive: true, span: 130 },
+    facil:    { name: "Fácil",    span: 250,  at: function (r) { return Math.max(600, r - 400); } },
+    medio:    { name: "A tu nivel", span: 180, at: function (r) { return r; } },
+    todos:    { name: "Mezclado", span: 1200, at: function (r) { return r; } }
   };
 
+  // Cuánto se aprieta al empezar y cuánto se mueve el listón con cada
+  // resultado.
+  //
+  // El listón deja de moverse cuando aciertas UP/(UP+DOWN) de las veces, así
+  // que esa fracción es la que fija la exigencia real: 25 y 18 la dejan en el
+  // 42%. Traducido a rating, son unos +57 puntos por encima del tuyo, que es
+  // donde se aprende: cuesta, pero sale. Si subes o bajas estos números,
+  // comprueba antes esa fracción; con un DOWN mayor que UP el listón acaba
+  // cayendo por debajo de tu nivel y el modo deja de ser exigente.
+  //
+  // El mínimo de 0 es la garantía de que nunca sirve puzzles más fáciles que
+  // tu rating, por mala que sea la racha.
+  var CHALLENGE_START = 60;
+  var CHALLENGE_UP = 25;
+  var CHALLENGE_DOWN = 18;
+  var CHALLENGE_MIN = 0;
+  var CHALLENGE_MAX = 300;
+
+  /**
+   * Motivos que entran en el modo aleatorio: los que enseñan un truco. Se
+   * dejan fuera los de fase (aperturas, finales) y los de longitud, que no
+   * son patrones que reconocer sino descripciones de la posición.
+   */
+  function motifPool() {
+    var pool = [];
+    window.THEMES.groups.forEach(function (group) {
+      if (group.id === "fases" || group.id === "longitud") return;
+      group.themes.forEach(function (t) {
+        if (window.Data.themeCount(t) > 0) pool.push(t);
+      });
+    });
+    return pool;
+  }
+
+  function shuffled(list) {
+    var out = list.slice();
+    for (var i = out.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = out[i]; out[i] = out[j]; out[j] = tmp;
+    }
+    return out;
+  }
+
+  /**
+   * Entrenamiento sobre un tema concreto, o sobre uno distinto cada vez si se
+   * pasa "aleatorio". En ese caso se recorre toda la baraja de motivos antes
+   * de repetir ninguno, así que también salen los raros.
+   */
   function theme(themeId, levelId) {
-    var level = LEVELS[levelId] || LEVELS.medio;
+    var level = LEVELS[levelId] || LEVELS.exigente;
+    var random = themeId === RANDOM_ID;
     var exclude = exclusions();
-    var session = { solved: 0, failed: 0 };
+    var session = { solved: 0, failed: 0, delta: 0 };
+    var challenge = CHALLENGE_START;
+    var deck = [];
+
+    function nextMotif() {
+      if (!deck.length) deck = shuffled(motifPool());
+      return deck.pop();
+    }
+
+    function target() {
+      var rating = window.Store.state.rating;
+      if (!level.adaptive) return level.at(rating);
+      return Math.max(window.Rating.MIN,
+        Math.min(window.Rating.MAX, rating + challenge));
+    }
 
     return {
-      id: "theme",
-      title: window.THEMES.name(themeId),
+      id: random ? "random" : "theme",
+      title: random ? "Aleatorio" : window.THEMES.name(themeId),
       subtitle: level.name,
       themeId: themeId,
       allowRetry: true,
@@ -85,13 +157,13 @@ window.Modes = (function () {
       autoNext: false,
       lives: 0,
       timed: 0,
-      affectsRating: false,
+      affectsRating: !!level.adaptive,
 
       next: function () {
         var puzzle = window.Data.pick({
-          rating: level.at(window.Store.state.rating),
+          rating: target(),
           span: level.span,
-          theme: themeId,
+          theme: random ? nextMotif() : themeId,
           exclude: exclude
         });
         if (puzzle) exclude[puzzle.index] = 1;
@@ -101,11 +173,35 @@ window.Modes = (function () {
       result: function (res) {
         if (res.clean) session.solved++; else session.failed++;
         window.Store.record(res.puzzle, res.clean);
-        return { over: false };
+
+        var out = { over: false };
+        if (level.adaptive) {
+          // el listón se mueve con el resultado, para no dejarte ni ahogado
+          // ni cómodo
+          challenge = Math.max(CHALLENGE_MIN, Math.min(CHALLENGE_MAX,
+            challenge + (res.clean ? CHALLENGE_UP : -CHALLENGE_DOWN)));
+
+          var st = window.Store.state;
+          var up = window.Rating.update(st.rating, res.puzzle.rating,
+                                        res.clean ? 1 : 0, st.solvedCount);
+          window.Store.setRating(up.rating);
+          st.solvedCount++;
+          session.delta += up.delta;
+          out.delta = up.delta;
+        }
+        window.Store.save();
+        return out;
       },
 
       hud: function () {
         var total = session.solved + session.failed;
+        if (level.adaptive) {
+          return [
+            { label: "Tu rating", value: String(window.Store.state.rating),
+              trend: session.delta },
+            { label: "Sesión", value: session.solved + "/" + total }
+          ];
+        }
         return [
           { label: "Resueltos", value: String(session.solved) },
           { label: "Acierto", value: total ? Math.round(session.solved / total * 100) + "%" : "—" }
@@ -260,6 +356,6 @@ window.Modes = (function () {
 
   return {
     rated: rated, theme: theme, survival: survival, rush: rush,
-    review: review, levels: LEVELS
+    review: review, levels: LEVELS, randomId: RANDOM_ID, motifPool: motifPool
   };
 })();

@@ -130,6 +130,14 @@ window.App = (function () {
     var html = backHeader("Entrenamiento");
     html += '<p class="lead">Elige qué quieres practicar. Cada bloque agrupa puzzles con el mismo motivo, para que el patrón se te quede grabado.</p>';
 
+    // El aleatorio va primero y destacado: es el que más se parece a jugar.
+    html += '<button class="mode-card mode-random" data-nav="#/tema/aleatorio">' +
+      '<span class="mode-icon" aria-hidden="true">⚄</span>' +
+      '<span class="mode-text"><b>Aleatorio</b>' +
+      "<small>Un motivo distinto cada vez, sin saber cuál toca</small></span>" +
+      '<span class="mode-badge">Recomendado</span></button>' +
+      '<h2 class="section-title">O elige un motivo concreto</h2>';
+
     window.THEMES.groups.forEach(function (group) {
       var items = group.themes.filter(function (t) { return window.Data.themeCount(t) > 0; });
       if (!items.length) return;
@@ -152,6 +160,7 @@ window.App = (function () {
   }
 
   function themeDetail(themeId) {
+    if (themeId === window.Modes.randomId) { randomDetail(); return; }
     if (!window.THEMES.labels[themeId]) { go("#/temas"); return; }
     var stats = window.Store.state.stats.byTheme[themeId];
     var total = stats ? stats.ok + stats.ko : 0;
@@ -164,20 +173,46 @@ window.App = (function () {
         '<div><b>' + (stats ? stats.ok : 0) + "</b><span>resueltos</span></div>" +
         '<div><b>' + (total ? Math.round(stats.ok / total * 100) + "%" : "—") + "</b><span>acierto</span></div>" +
       "</div>" +
-      "<h2 class=\"section-title\">Dificultad</h2>" +
-      '<div class="level-list">' +
-        levelButton(themeId, "facil", "Fácil", "Por debajo de tu nivel, para coger patrón") +
-        levelButton(themeId, "medio", "A tu nivel", "Ajustado a tu rating actual") +
-        levelButton(themeId, "dificil", "Difícil", "Un escalón por encima") +
-        levelButton(themeId, "todos", "Mezclado", "De todo, sin filtrar por dificultad") +
-      "</div>"
+      levelSection(themeId)
     );
     wireNav();
   }
 
-  function levelButton(themeId, level, name, desc) {
-    return '<button class="level-item" data-nav="#/tema/' + themeId + "/" + level + '">' +
-      "<b>" + esc(name) + "</b><small>" + esc(desc) + "</small><span>›</span></button>";
+  /** El modo aleatorio no tiene tema propio, así que se describe aparte. */
+  function randomDetail() {
+    var st = window.Store.state;
+    screen("screen-list",
+      backHeader("Aleatorio", "#/temas") +
+      '<p class="lead">Un motivo distinto en cada puzzle y sin saber cuál toca. Es lo más parecido a una partida de verdad: ahí tampoco te avisan de que viene una clavada. Antes de repetir motivo pasan todos los demás, así que también salen los raros.</p>' +
+      '<div class="stat-strip">' +
+        "<div><b>" + window.Modes.motifPool().length + "</b><span>motivos</span></div>" +
+        "<div><b>" + st.rating + "</b><span>tu rating</span></div>" +
+        "<div><b>" + st.stats.solved + "</b><span>resueltos</span></div>" +
+      "</div>" +
+      levelSection(window.Modes.randomId)
+    );
+    wireNav();
+  }
+
+  function levelSection(themeId) {
+    return '<h2 class="section-title">Dificultad</h2>' +
+      '<div class="level-list">' +
+        levelButton(themeId, "exigente", "Exigente",
+          "Empieza por encima de tu nivel y se mueve según aciertes. Cuenta para tu rating.", true) +
+        levelButton(themeId, "facil", "Fácil",
+          "Por debajo de tu nivel, para coger el patrón") +
+        levelButton(themeId, "medio", "A tu nivel",
+          "Ajustado a tu rating actual") +
+        levelButton(themeId, "todos", "Mezclado",
+          "De todo, sin filtrar por dificultad") +
+      "</div>";
+  }
+
+  function levelButton(themeId, level, name, desc, featured) {
+    return '<button class="level-item' + (featured ? " featured" : "") + '" ' +
+      'data-nav="#/tema/' + themeId + "/" + level + '">' +
+      "<b>" + esc(name) + (featured ? "<em>recomendado</em>" : "") + "</b>" +
+      "<small>" + esc(desc) + "</small><span>›</span></button>";
   }
 
   // --- contrarreloj ------------------------------------------------------

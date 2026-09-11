@@ -6,7 +6,7 @@ Aplicación web de puzzles de ajedrez, sin límite diario y sin conexión. Pensa
 primero para el iPhone: se toca para mover, se instala en la pantalla de inicio
 y funciona en el metro.
 
-**17.403 puzzles** incluidos en el propio proyecto, de rating 500 a 2900,
+**68.782 puzzles** incluidos en el propio proyecto, de rating 500 a 2900,
 sacados de la base de datos abierta de Lichess.
 
 ## Modos
@@ -103,8 +103,11 @@ node    tools/check_puzzles.js              # comprueba que todos son jugables
 ```
 
 `build_puzzles.py` acepta `--per-band` y `--theme-min` para hacer el banco más
-grande o más pequeño. Con los valores por omisión salen unos 17.000 puzzles y
-1,7 MB.
+grande o más pequeño. Con los valores por omisión salen unos 68.800 puzzles y
+6,8 MB (2,9 MB comprimidos, que es lo que de verdad baja el móvil la primera
+vez). `--download` se trae ahora el fichero completo de Lichess (~305 MB): con
+un prefijo parcial, las franjas de rating más altas —nivel de gran maestro—
+se quedaban cortas.
 
 **Importante:** al cambiar cualquier fichero de la app hay que subir
 `CACHE_VERSION` en `sw.js`, o los dispositivos que ya la tengan guardada

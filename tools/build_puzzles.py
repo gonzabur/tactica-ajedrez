@@ -8,10 +8,10 @@ Uso tipico:
     python3 tools/build_puzzles.py --download          # descarga y construye
     python3 tools/build_puzzles.py --csv /ruta/al.csv  # usa un CSV ya descompimido
 
-El fichero completo son ~305 MB comprimidos (~5,4 M de puzzles). Como el CSV va
-ordenado por un identificador aleatorio, descargar solo el principio del fichero
-da una muestra representativa de todos los ratings y temas, asi que por defecto
-se bajan 150 MB y se descomprimen (el error de truncamiento al final es normal).
+El fichero completo son ~305 MB comprimidos (~6,1 M de puzzles) y se descarga
+entero: un prefijo mas pequeno basta para las franjas de rating intermedias,
+pero las mas altas (2800+, nivel de gran maestro) son tan escasas en la base
+que hace falta el fichero completo para no quedarse corto ahi.
 
 Salida: data/puzzles.js  -> un unico fichero ordenado por rating, con formato
 linea a linea:  id \t fen \t jugadas(uci) \t rating \t indices-de-tema \t indice-apertura
@@ -26,7 +26,6 @@ import sys
 from collections import defaultdict
 
 CSV_URL = "https://database.lichess.org/lichess_db_puzzle.csv.zst"
-DOWNLOAD_BYTES = 157_286_400  # 150 MB del principio del fichero
 
 # --- Criterios de calidad -------------------------------------------------
 MIN_PLAYS = 60         # puzzles jugados suficientes veces (rating fiable)
@@ -86,20 +85,17 @@ class Reservoir:
 
 
 def download_sample(dest_dir):
-    """Descarga el principio del fichero de Lichess y lo descomprime."""
+    """Descarga el fichero completo de Lichess (~305 MB) y lo descomprime."""
     os.makedirs(dest_dir, exist_ok=True)
-    zst = os.path.join(dest_dir, "lichess_puzzles.partial.zst")
+    zst = os.path.join(dest_dir, "lichess_puzzles.zst")
     csv_path = os.path.join(dest_dir, "lichess_puzzles.csv")
 
     if not os.path.exists(csv_path):
-        print(f"Descargando {DOWNLOAD_BYTES // 1024 // 1024} MB de {CSV_URL} ...")
-        subprocess.run(
-            ["curl", "-#", "-r", f"0-{DOWNLOAD_BYTES}", "-o", zst, CSV_URL],
-            check=True,
-        )
-        print("Descomprimiendo (el aviso de truncamiento al final es esperado) ...")
+        print(f"Descargando {CSV_URL} (~305 MB) ...")
+        subprocess.run(["curl", "-#", "-o", zst, CSV_URL], check=True)
+        print("Descomprimiendo ...")
         with open(csv_path, "wb") as out:
-            subprocess.run(["zstd", "-dc", zst], stdout=out, stderr=subprocess.DEVNULL)
+            subprocess.run(["zstd", "-dc", zst], stdout=out, check=True)
         os.remove(zst)
     else:
         print(f"Reutilizando {csv_path}")
@@ -124,7 +120,7 @@ def collect(csv_path, per_band, theme_min, seed):
                 pop = int(row["Popularity"])
                 dev = int(row["RatingDeviation"])
             except (TypeError, ValueError, KeyError):
-                continue  # linea truncada al final del fichero parcial
+                continue  # fila con algun campo vacio o mal formado
 
             if not (RATING_MIN <= rating <= RATING_MAX):
                 continue
@@ -259,8 +255,8 @@ def main():
     ap.add_argument("--download", action="store_true", help="descargar la muestra de Lichess")
     ap.add_argument("--cache-dir", default=os.path.join(here, ".cache"))
     ap.add_argument("--out", default=os.path.join(here, "data", "puzzles.js"))
-    ap.add_argument("--per-band", type=int, default=600, help=f"puzzles por franja de {BAND} puntos")
-    ap.add_argument("--theme-min", type=int, default=220, help="minimo garantizado por tema")
+    ap.add_argument("--per-band", type=int, default=2400, help=f"puzzles por franja de {BAND} puntos")
+    ap.add_argument("--theme-min", type=int, default=880, help="minimo garantizado por tema")
     ap.add_argument("--seed", type=int, default=7)
     args = ap.parse_args()
 

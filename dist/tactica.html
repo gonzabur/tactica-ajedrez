@@ -54,6 +54,7 @@
   --gold-ink: #241a02;
   --danger: #e5674f;
   --wrong-bright: #ff3b30;   /* rojo del badge de fallo: más vivo que --danger */
+  --right-bright: #30d158;  /* verde de éxito de iOS (modo oscuro) */
   --icon-blue: #78b6e8;
   --icon-violet: #cf92d8;
   --knob: #ffffff;
@@ -102,6 +103,7 @@
   --gold-ink: #fdf3dd;
   --danger: #bd3f28;
   --wrong-bright: #e0201a;
+  --right-bright: #34c759;  /* verde de éxito de iOS (modo claro) */
   --icon-blue: #2f6f9e;
   --icon-violet: #7d4a8a;
   --knob: #ffffff;
@@ -128,6 +130,12 @@
 html, body {
   margin: 0;
   height: 100%;
+  /* El documento raíz nunca se desplaza: en iOS Safari, un documento que
+     PUEDE hacer scroll a veces se queda "atascado" unos píxeles desplazado
+     tras un rebote elástico o un cambio de la barra de direcciones, y nada
+     lo devuelve a 0,0 salvo recargar. Todo el scroll de la app vive en
+     #app, que es el único elemento con overflow real. */
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
@@ -146,7 +154,11 @@ body {
 #app {
   max-width: 520px;
   margin: 0 auto;
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;   /* el rebote no se escapa hacia el documento */
 }
 
 button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
@@ -169,6 +181,18 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 }
 
 @supports not (height: 100dvh) { .screen-play { height: 100vh; } }
+
+/* En la pantalla de juego, .screen-play se aplica directamente sobre #app
+   (Play.start() reutiliza el mismo elemento), así que un selector de ID
+   (#app) y uno de clase (.screen-play) compiten por height/overflow en el
+   MISMO elemento -- y el ID gana por especificidad aunque aparezca antes en
+   el archivo. Sin esto, el tablero heredaría el overflow-y:auto de #app y
+   podría ganar scroll propio. */
+#app.screen-play {
+  height: 100dvh;
+  overflow: hidden;
+}
+@supports not (height: 100dvh) { #app.screen-play { height: 100vh; } }
 
 /* --- cabeceras ----------------------------------------------------------- */
 
@@ -949,8 +973,9 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .mark.flash-right::after, .mark.flash-wrong::after {
   content: "";
   position: absolute;
-  top: -9%; right: -9%;
-  width: 38%; height: 38%;
+  /* tamaño "medio": +30% sobre el original, para acierto y fallo por igual */
+  top: -11%; right: -11%;
+  width: 50%; height: 50%;
   border-radius: 50%;
   background-repeat: no-repeat;
   background-position: center;
@@ -959,7 +984,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   animation: badge-pop .3s cubic-bezier(.3, 1.4, .4, 1) both;
 }
 .mark.flash-right::after {
-  background-color: var(--accent-strong);
+  background-color: var(--right-bright);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
 }
 .mark.flash-wrong::after {
@@ -23148,6 +23173,33 @@ window.App = (function () {
   }
 
   /**
+   * Ancla el documento raíz a 0,0 y lo mantiene ahí.
+   *
+   * El CSS (html, body { overflow: hidden }) ya debería bastar por sí solo,
+   * pero en iOS Safari hay casos donde el documento se desplaza igualmente
+   * unos píxeles -- un rebote elástico, un cambio del tamaño de la barra de
+   * direcciones, el visualViewport reajustándose -- y sin este cinturón de
+   * seguridad no hay nada que lo devuelva a su sitio salvo recargar la app.
+   * Todo el scroll real de la app vive en #app; el documento nunca debe
+   * moverse.
+   */
+  function pinDocument() {
+    var reset = function () {
+      if (window.scrollY || window.scrollX ||
+          document.documentElement.scrollTop || document.documentElement.scrollLeft) {
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener("scroll", reset, { passive: true });
+    window.addEventListener("orientationchange", reset);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", reset);
+      window.visualViewport.addEventListener("scroll", reset);
+    }
+    reset();
+  }
+
+  /**
    * Quita el zoom de pellizco.
    *
    * Safari de iOS ignora `user-scalable=no` en el viewport desde iOS 10, así
@@ -23372,6 +23424,7 @@ window.App = (function () {
     }
 
     blockPinchZoom();
+    pinDocument();
     applyAppearance();
     // en modo automático hay que reaccionar si el sistema cambia de tema
     // mientras la app está abierta

@@ -389,6 +389,33 @@ window.App = (function () {
   }
 
   /**
+   * Ancla el documento raíz a 0,0 y lo mantiene ahí.
+   *
+   * El CSS (html, body { overflow: hidden }) ya debería bastar por sí solo,
+   * pero en iOS Safari hay casos donde el documento se desplaza igualmente
+   * unos píxeles -- un rebote elástico, un cambio del tamaño de la barra de
+   * direcciones, el visualViewport reajustándose -- y sin este cinturón de
+   * seguridad no hay nada que lo devuelva a su sitio salvo recargar la app.
+   * Todo el scroll real de la app vive en #app; el documento nunca debe
+   * moverse.
+   */
+  function pinDocument() {
+    var reset = function () {
+      if (window.scrollY || window.scrollX ||
+          document.documentElement.scrollTop || document.documentElement.scrollLeft) {
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener("scroll", reset, { passive: true });
+    window.addEventListener("orientationchange", reset);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", reset);
+      window.visualViewport.addEventListener("scroll", reset);
+    }
+    reset();
+  }
+
+  /**
    * Quita el zoom de pellizco.
    *
    * Safari de iOS ignora `user-scalable=no` en el viewport desde iOS 10, así
@@ -613,6 +640,7 @@ window.App = (function () {
     }
 
     blockPinchZoom();
+    pinDocument();
     applyAppearance();
     // en modo automático hay que reaccionar si el sistema cambia de tema
     // mientras la app está abierta

@@ -28,6 +28,11 @@ window.Board = (function () {
 
   function liftFor(boardWidth) { return COARSE ? boardWidth / 8 * LIFT : 0; }
 
+  // Duración del desplazamiento de una pieza. Tiene que coincidir con la
+  // transición de `.piece` en css/styles.css: si se cambia una, hay que
+  // cambiar la otra.
+  var PIECE_MOVE_MS = 280;
+
   function squareName(file, rank) { return FILES[file] + (rank + 1); }
   function fileOf(sq) { return FILES.indexOf(sq[0]); }
   function rankOf(sq) { return parseInt(sq[1], 10) - 1; }
@@ -412,30 +417,38 @@ window.Board = (function () {
           return;
         }
 
-        var moving = state.pieces[from];
+        // `opts.simple` se usa para deshacer visualmente un intento fallido: la
+        // pieza vuelve a su casilla de origen, y esa "jugada" no es una jugada
+        // de ajedrez de verdad, así que no hay que buscarle captura ni mirar si
+        // parece un enroque (podría serlo por coincidencia de geometría si el
+        // intento fallido FUE un enroque, y entonces movería una torre que no
+        // toca). Lo que quede descuadrado lo corrige el renderPieces() de abajo.
+        if (!opts.simple) {
+          var moving = state.pieces[from];
 
-        // pieza capturada en el destino, o el peón comido al paso
-        var takenSq = state.pieces[to] ? to : null;
-        if (!takenSq && moving[1] === "P" && from[0] !== to[0]) {
-          takenSq = to[0] + from[1];
-        }
-        if (takenSq && els[takenSq]) {
-          var taken = els[takenSq];
-          delete els[takenSq];
-          taken.classList.add("taken");
-          window.setTimeout(function () { taken.remove(); }, 180);
-        }
+          // pieza capturada en el destino, o el peón comido al paso
+          var takenSq = state.pieces[to] ? to : null;
+          if (!takenSq && moving[1] === "P" && from[0] !== to[0]) {
+            takenSq = to[0] + from[1];
+          }
+          if (takenSq && els[takenSq]) {
+            var taken = els[takenSq];
+            delete els[takenSq];
+            taken.classList.add("taken");
+            window.setTimeout(function () { taken.remove(); }, 180);
+          }
 
-        // enroque: la torre acompaña al rey en la misma animación
-        if (moving[1] === "K" && Math.abs(fileOf(to) - fileOf(from)) === 2) {
-          var short = fileOf(to) > fileOf(from);
-          var rookFrom = (short ? "h" : "a") + from[1];
-          var rookTo = (short ? "f" : "d") + from[1];
-          if (els[rookFrom]) {
-            var rook = els[rookFrom];
-            delete els[rookFrom];
-            els[rookTo] = rook;
-            place(rook, rookTo);
+          // enroque: la torre acompaña al rey en la misma animación
+          if (moving[1] === "K" && Math.abs(fileOf(to) - fileOf(from)) === 2) {
+            var short = fileOf(to) > fileOf(from);
+            var rookFrom = (short ? "h" : "a") + from[1];
+            var rookTo = (short ? "f" : "d") + from[1];
+            if (els[rookFrom]) {
+              var rook = els[rookFrom];
+              delete els[rookFrom];
+              els[rookTo] = rook;
+              place(rook, rookTo);
+            }
           }
         }
 
@@ -445,7 +458,9 @@ window.Board = (function () {
         place(mover, to);
 
         state.pieces = next;
-        window.setTimeout(function () { syncPieces(next); }, 190);
+        // debe ser mayor que la duración de la transición de .piece en el CSS,
+        // para no reconstruir el DOM a medio camino de la animación
+        window.setTimeout(function () { syncPieces(next); }, PIECE_MOVE_MS + 20);
         renderMarks();
       },
 

@@ -8,6 +8,9 @@
  */
 window.PuzzlePlayer = (function () {
   var OPPONENT_DELAY = 420;
+  // Tiempo que se ve la pieza asentada en la casilla equivocada, con el
+  // badge de fallo, antes de que empiece a volver a su sitio.
+  var WRONG_MOVE_PAUSE = 550;
 
   function create(board, handlers) {
     handlers = handlers || {};
@@ -195,14 +198,37 @@ window.PuzzlePlayer = (function () {
       var correct = played === expected || isMate;
 
       if (!correct) {
-        game.undo();
         failedHere = true;
-        // repintar desde la línea, no desde el motor: así la pieza vuelve a su
-        // casilla sin perder el resaltado de la última jugada buena
-        renderAt(viewAt);
-        board.flash(to, "wrong");
-        handOverToPlayer();
-        if (handlers.onWrong) handlers.onWrong(move, puzzle);
+        // se bloquea YA: el tablero está a medio camino de una animación de
+        // regreso durante los próximos ~830ms y no debe admitir otro toque
+        lockBoard();
+        var wrongFen = game.fen();     // la posición tal cual queda el intento
+        game.undo();                   // el motor vuelve a la posición correcta
+        var back = line[viewAt];       // a dónde hay que volver visualmente
+
+        // se ve la jugada completa, como cualquier otra: la pieza llega a su
+        // casilla y se resalta igual que un acierto, y ahí se posa el aviso
+        // de que no era esa
+        board.setPosition(wrongFen, { animate: [move.from, move.to],
+          lastMove: [move.from, move.to] });
+        board.flash(move.to, "wrong");
+
+        // el regreso se registra con later(): si mientras tanto se pide la
+        // solución, clearTimers() lo cancela y reveal() toma el tablero, que
+        // es lo correcto. handlers.onWrong se avisa aquí, no antes, porque en
+        // los modos sin reintento dispara fail() -> clearTimers(), y si eso
+        // ocurriera ANTES de esta animación se cancelaría a sí misma.
+        later(function () {
+          board.setPosition(back.fen, {
+            animate: [move.to, move.from],
+            simple: true,
+            lastMove: back.from ? [back.from, back.to] : null,
+            check: back.checkSq,
+            mate: back.mate
+          });
+          handOverToPlayer();
+          if (handlers.onWrong) handlers.onWrong(move, puzzle);
+        }, WRONG_MOVE_PAUSE);
         return;
       }
 

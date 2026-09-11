@@ -23,6 +23,7 @@
   --gold-rgb: 232, 184, 75;
   --gold-ink: #241a02;
   --danger: #e5674f;
+  --wrong-bright: #ff3b30;   /* rojo del badge de fallo: más vivo que --danger */
   --icon-blue: #78b6e8;
   --icon-violet: #cf92d8;
   --knob: #ffffff;
@@ -70,6 +71,7 @@
   --gold-rgb: 168, 124, 18;
   --gold-ink: #fdf3dd;
   --danger: #bd3f28;
+  --wrong-bright: #e0201a;
   --icon-blue: #2f6f9e;
   --icon-violet: #7d4a8a;
   --knob: #ffffff;
@@ -840,7 +842,9 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 
 .piece {
   z-index: 3;
-  transition: transform .18s cubic-bezier(.22, .8, .3, 1);
+  /* 280ms: coincide con PIECE_MOVE_MS en js/board.js -- si se cambia aquí,
+     cambiar también allí. */
+  transition: transform .28s cubic-bezier(.22, .8, .3, 1);
 }
 .piece.above { z-index: 5; }
 .piece.dragging {
@@ -929,7 +933,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
 }
 .mark.flash-wrong::after {
-  background-color: var(--danger);
+  background-color: var(--wrong-bright);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E");
 }
 

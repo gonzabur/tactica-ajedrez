@@ -53,6 +53,7 @@
   --gold-rgb: 232, 184, 75;
   --gold-ink: #241a02;
   --danger: #e5674f;
+  --wrong-bright: #ff3b30;   /* rojo del badge de fallo: más vivo que --danger */
   --icon-blue: #78b6e8;
   --icon-violet: #cf92d8;
   --knob: #ffffff;
@@ -100,6 +101,7 @@
   --gold-rgb: 168, 124, 18;
   --gold-ink: #fdf3dd;
   --danger: #bd3f28;
+  --wrong-bright: #e0201a;
   --icon-blue: #2f6f9e;
   --icon-violet: #7d4a8a;
   --knob: #ffffff;
@@ -870,7 +872,9 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 
 .piece {
   z-index: 3;
-  transition: transform .18s cubic-bezier(.22, .8, .3, 1);
+  /* 280ms: coincide con PIECE_MOVE_MS en js/board.js -- si se cambia aquí,
+     cambiar también allí. */
+  transition: transform .28s cubic-bezier(.22, .8, .3, 1);
 }
 .piece.above { z-index: 5; }
 .piece.dragging {
@@ -959,7 +963,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
 }
 .mark.flash-wrong::after {
-  background-color: var(--danger);
+  background-color: var(--wrong-bright);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E");
 }
 
@@ -21106,6 +21110,11 @@ window.Board = (function () {
 
   function liftFor(boardWidth) { return COARSE ? boardWidth / 8 * LIFT : 0; }
 
+  // Duración del desplazamiento de una pieza. Tiene que coincidir con la
+  // transición de `.piece` en css/styles.css: si se cambia una, hay que
+  // cambiar la otra.
+  var PIECE_MOVE_MS = 280;
+
   function squareName(file, rank) { return FILES[file] + (rank + 1); }
   function fileOf(sq) { return FILES.indexOf(sq[0]); }
   function rankOf(sq) { return parseInt(sq[1], 10) - 1; }
@@ -21490,30 +21499,38 @@ window.Board = (function () {
           return;
         }
 
-        var moving = state.pieces[from];
+        // `opts.simple` se usa para deshacer visualmente un intento fallido: la
+        // pieza vuelve a su casilla de origen, y esa "jugada" no es una jugada
+        // de ajedrez de verdad, así que no hay que buscarle captura ni mirar si
+        // parece un enroque (podría serlo por coincidencia de geometría si el
+        // intento fallido FUE un enroque, y entonces movería una torre que no
+        // toca). Lo que quede descuadrado lo corrige el renderPieces() de abajo.
+        if (!opts.simple) {
+          var moving = state.pieces[from];
 
-        // pieza capturada en el destino, o el peón comido al paso
-        var takenSq = state.pieces[to] ? to : null;
-        if (!takenSq && moving[1] === "P" && from[0] !== to[0]) {
-          takenSq = to[0] + from[1];
-        }
-        if (takenSq && els[takenSq]) {
-          var taken = els[takenSq];
-          delete els[takenSq];
-          taken.classList.add("taken");
-          window.setTimeout(function () { taken.remove(); }, 180);
-        }
+          // pieza capturada en el destino, o el peón comido al paso
+          var takenSq = state.pieces[to] ? to : null;
+          if (!takenSq && moving[1] === "P" && from[0] !== to[0]) {
+            takenSq = to[0] + from[1];
+          }
+          if (takenSq && els[takenSq]) {
+            var taken = els[takenSq];
+            delete els[takenSq];
+            taken.classList.add("taken");
+            window.setTimeout(function () { taken.remove(); }, 180);
+          }
 
-        // enroque: la torre acompaña al rey en la misma animación
-        if (moving[1] === "K" && Math.abs(fileOf(to) - fileOf(from)) === 2) {
-          var short = fileOf(to) > fileOf(from);
-          var rookFrom = (short ? "h" : "a") + from[1];
-          var rookTo = (short ? "f" : "d") + from[1];
-          if (els[rookFrom]) {
-            var rook = els[rookFrom];
-            delete els[rookFrom];
-            els[rookTo] = rook;
-            place(rook, rookTo);
+          // enroque: la torre acompaña al rey en la misma animación
+          if (moving[1] === "K" && Math.abs(fileOf(to) - fileOf(from)) === 2) {
+            var short = fileOf(to) > fileOf(from);
+            var rookFrom = (short ? "h" : "a") + from[1];
+            var rookTo = (short ? "f" : "d") + from[1];
+            if (els[rookFrom]) {
+              var rook = els[rookFrom];
+              delete els[rookFrom];
+              els[rookTo] = rook;
+              place(rook, rookTo);
+            }
           }
         }
 
@@ -21523,7 +21540,9 @@ window.Board = (function () {
         place(mover, to);
 
         state.pieces = next;
-        window.setTimeout(function () { syncPieces(next); }, 190);
+        // debe ser mayor que la duración de la transición de .piece en el CSS,
+        // para no reconstruir el DOM a medio camino de la animación
+        window.setTimeout(function () { syncPieces(next); }, PIECE_MOVE_MS + 20);
         renderMarks();
       },
 
@@ -21604,6 +21623,9 @@ window.Board = (function () {
  */
 window.PuzzlePlayer = (function () {
   var OPPONENT_DELAY = 420;
+  // Tiempo que se ve la pieza asentada en la casilla equivocada, con el
+  // badge de fallo, antes de que empiece a volver a su sitio.
+  var WRONG_MOVE_PAUSE = 550;
 
   function create(board, handlers) {
     handlers = handlers || {};
@@ -21791,14 +21813,37 @@ window.PuzzlePlayer = (function () {
       var correct = played === expected || isMate;
 
       if (!correct) {
-        game.undo();
         failedHere = true;
-        // repintar desde la línea, no desde el motor: así la pieza vuelve a su
-        // casilla sin perder el resaltado de la última jugada buena
-        renderAt(viewAt);
-        board.flash(to, "wrong");
-        handOverToPlayer();
-        if (handlers.onWrong) handlers.onWrong(move, puzzle);
+        // se bloquea YA: el tablero está a medio camino de una animación de
+        // regreso durante los próximos ~830ms y no debe admitir otro toque
+        lockBoard();
+        var wrongFen = game.fen();     // la posición tal cual queda el intento
+        game.undo();                   // el motor vuelve a la posición correcta
+        var back = line[viewAt];       // a dónde hay que volver visualmente
+
+        // se ve la jugada completa, como cualquier otra: la pieza llega a su
+        // casilla y se resalta igual que un acierto, y ahí se posa el aviso
+        // de que no era esa
+        board.setPosition(wrongFen, { animate: [move.from, move.to],
+          lastMove: [move.from, move.to] });
+        board.flash(move.to, "wrong");
+
+        // el regreso se registra con later(): si mientras tanto se pide la
+        // solución, clearTimers() lo cancela y reveal() toma el tablero, que
+        // es lo correcto. handlers.onWrong se avisa aquí, no antes, porque en
+        // los modos sin reintento dispara fail() -> clearTimers(), y si eso
+        // ocurriera ANTES de esta animación se cancelaría a sí misma.
+        later(function () {
+          board.setPosition(back.fen, {
+            animate: [move.to, move.from],
+            simple: true,
+            lastMove: back.from ? [back.from, back.to] : null,
+            check: back.checkSq,
+            mate: back.mate
+          });
+          handOverToPlayer();
+          if (handlers.onWrong) handlers.onWrong(move, puzzle);
+        }, WRONG_MOVE_PAUSE);
         return;
       }
 

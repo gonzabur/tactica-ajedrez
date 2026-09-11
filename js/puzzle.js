@@ -201,7 +201,6 @@ window.PuzzlePlayer = (function () {
         // casilla sin perder el resaltado de la última jugada buena
         renderAt(viewAt);
         board.flash(to, "wrong");
-        board.shake();
         handOverToPlayer();
         if (handlers.onWrong) handlers.onWrong(move, puzzle);
         return;

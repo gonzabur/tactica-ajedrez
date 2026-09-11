@@ -76,10 +76,16 @@ window.Board = (function () {
       '<div class="board-squares"></div>' +
       '<div class="board-marks"></div>' +
       '<div class="board-pieces"></div>' +
+      '<div class="board-flash"></div>' +
       '<div class="board-promo" hidden></div>';
     var squaresLayer = root.querySelector(".board-squares");
     var marksLayer = root.querySelector(".board-marks");
     var piecesLayer = root.querySelector(".board-pieces");
+    // Capa aparte para los destellos de acierto/fallo/pista: viven más tiempo
+    // que una jugada y `renderMarks()` reconstruye `marksLayer` por completo
+    // en cada jugada (incluida la que ellos mismos acaban de motivar), así que
+    // si compartieran capa se borrarían al instante, antes de que se vean.
+    var flashLayer = root.querySelector(".board-flash");
     var promoLayer = root.querySelector(".board-promo");
 
     buildSquares();
@@ -480,19 +486,13 @@ window.Board = (function () {
         renderPieces();
       },
 
-      /** Marca visual de acierto o error sobre una casilla. */
+      /** Insignia de acierto/fallo/pista sobre una casilla, ajena a renderMarks(). */
       flash: function (sq, kind) {
         var el = document.createElement("div");
         el.className = "mark flash-" + kind;
         place(el, sq);
-        marksLayer.appendChild(el);
+        flashLayer.appendChild(el);
         window.setTimeout(function () { el.remove(); }, 700);
-      },
-
-      shake: function () {
-        root.classList.remove("shake");
-        void root.offsetWidth;   // reinicia la animación
-        root.classList.add("shake");
       },
 
       get orientation() { return state.orientation; },

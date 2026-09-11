@@ -139,6 +139,7 @@ window.PuzzlePlayer = (function () {
     /** Arranca un puzzle nuevo. */
     function load(next) {
       clearTimers();
+      board.clearFlashes();   // ninguna insignia del puzzle anterior debe sobrevivir
       puzzle = next;
       game = new window.Chess(next.fen);
       ply = 0;

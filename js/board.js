@@ -510,6 +510,15 @@ window.Board = (function () {
         window.setTimeout(function () { el.remove(); }, 700);
       },
 
+      /** Quita cualquier insignia pendiente. Hay que llamarlo al cargar un
+       *  puzzle nuevo: si no, la del último acierto del puzzle anterior puede
+       *  sobrevivir su propio timeout de 700ms y quedar superpuesta sobre las
+       *  piezas del siguiente (más probable cuanto más rápido se auto-avanza,
+       *  como en Supervivencia). */
+      clearFlashes: function () {
+        flashLayer.innerHTML = "";
+      },
+
       get orientation() { return state.orientation; },
       pieceAt: function (sq) { return state.pieces[sq] || null; }
     };

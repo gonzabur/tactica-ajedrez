@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><defs><linearGradient id="gW" x1="0.2" y1="0.05" x2="0.7" y2="1">
+<stop offset="0" stop-color="#ffffff"/><stop offset="0.55" stop-color="#f0f0f0"/><stop offset="1" stop-color="#c7c7cf"/>
+</linearGradient>
+<linearGradient id="gB" x1="0.2" y1="0.05" x2="0.7" y2="1">
+<stop offset="0" stop-color="#5f5f66"/><stop offset="0.5" stop-color="#28282c"/><stop offset="1" stop-color="#050505"/>
+</linearGradient>
+<filter id="edge" x="-40%" y="-40%" width="180%" height="180%">
+<feDropShadow dx="0" dy="1.2" stdDeviation="1" flood-color="#000" flood-opacity="0.4"/>
+<feGaussianBlur in="SourceAlpha" stdDeviation="0.9" result="blur"/>
+<feSpecularLighting in="blur" surfaceScale="3.5" specularConstant="0.8" specularExponent="20" lighting-color="#ffffff" result="spec">
+<fePointLight x="-30" y="-55" z="45"/>
+</feSpecularLighting>
+<feComposite in="spec" in2="SourceAlpha" operator="in" result="specClip"/>
+<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specClip"/></feMerge>
+</filter></defs><g filter="url(#edge)"><g fill="url(#gW)" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path stroke-linecap="butt" d="M9 39h27v-3H9zm3-3v-4h21v4zm-1-22V9h4v2h5V9h5v2h5V9h4v5"/><path d="m34 14-3 3H14l-3-3"/><path stroke-linecap="butt" stroke-linejoin="miter" d="M31 17v12.5H14V17"/><path d="m31 29.5 1.5 2.5h-20l1.5-2.5"/><path fill="none" stroke-linejoin="miter" d="M11 14h23"/></g></g></svg>

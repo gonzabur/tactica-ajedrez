@@ -27,13 +27,29 @@ NAMES = ["wK", "wQ", "wR", "wB", "wN", "wP", "bK", "bQ", "bR", "bB", "bN", "bP"]
 # Juegos incluidos, en el orden en que aparecen en Ajustes. El crédito se
 # muestra en la propia app: son obras de otros y hay que citarlas.
 SETS = [
-    ("cburnett", "Clásicas",     "Colin M. L. Burnett · GPLv2+"),
-    ("merida",   "Mérida",       "Armando Hernández Marroquín · GPLv2+"),
-    ("chessnut", "Nítidas",      "Alexis Luengas · Apache 2.0"),
-    ("celtic",   "Celtas",       "Maurizio Monge · MIT"),
-    ("spatial",  "Espaciales",   "Maurizio Monge · MIT"),
-    ("totoy",    "Trazo",        "Kosal Sen · CC BY 4.0"),
+    ("cburnett",   "Clásicas",   "Colin M. L. Burnett · GPLv2+"),
+    ("cburnett3d", "Relieve",    "Colin M. L. Burnett, con sombreado añadido · GPLv2+"),
+    ("merida",     "Mérida",     "Armando Hernández Marroquín · GPLv2+"),
+    ("chessnut",   "Nítidas",    "Alexis Luengas · Apache 2.0"),
+    ("celtic",     "Celtas",     "Maurizio Monge · MIT"),
+    ("spatial",    "Espaciales", "Maurizio Monge · MIT"),
+    ("totoy",      "Trazo",      "Kosal Sen · CC BY 4.0"),
 ]
+
+# "cburnett3d" no viene de ningún sitio: build_pieces_3d.py lo genera a partir
+# de cburnett aplicando un sombreado propio (ver ese script para el porqué).
+# Se regenera aquí mismo si falta o si cburnett ha cambiado.
+def ensure_cburnett3d():
+    out_dir = os.path.join(SRC, "cburnett3d")
+    src_dir = os.path.join(SRC, "cburnett")
+    stale = not os.path.isdir(out_dir) or any(
+        os.path.getmtime(os.path.join(src_dir, f"{n}.svg")) > os.path.getmtime(os.path.join(out_dir, f"{n}.svg"))
+        for n in NAMES
+        if os.path.exists(os.path.join(out_dir, f"{n}.svg"))
+    ) or len(os.listdir(out_dir) if os.path.isdir(out_dir) else []) < len(NAMES)
+    if stale:
+        import build_pieces_3d
+        build_pieces_3d.main()
 
 
 def namespace_ids(svg, prefix):
@@ -60,6 +76,8 @@ def load_piece(set_id, name):
 
 
 def main():
+    ensure_cburnett3d()
+
     sets = {}
     order = []
     for set_id, label, credit in SETS:

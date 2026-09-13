@@ -22,8 +22,13 @@ sacados de la base de datos abierta de Lichess.
 | **Progreso** | Evolución del rating, precisión por tema, récords y calendario de actividad. |
 
 En **Ajustes** se puede elegir tema claro u oscuro (o dejarlo en automático,
-siguiendo al sistema), entre seis colores de tablero y entre seis juegos de
-piezas.
+siguiendo al sistema), entre seis colores de tablero y entre siete juegos de
+piezas. Uno de ellos, «Relieve», no es un juego descargado: `tools/build_pieces_3d.py`
+toma las piezas planas de cburnett y les aplica un degradado de luz más un
+filtro de brillo especular y sombra proyectada, dando un efecto de volumen
+sin depender de ningún set con licencia dudosa (el estilo con sombreado tipo
+chess.com es un diseño suyo, no algo que se pueda copiar). `build_pieces.py`
+lo regenera solo si hace falta.
 
 El nivel **Exigente** del entrenamiento sirve puzzles por encima de tu rating y
 mueve ese listón según vayas acertando, de modo que la exigencia se mantenga a
@@ -96,7 +101,7 @@ para cambiar el banco de puzzles.
 
 ```bash
 python3 tools/build_puzzles.py --download   # descarga Lichess y reconstruye el banco
-python3 tools/build_pieces.py               # reempaqueta las piezas
+python3 tools/build_pieces.py               # reempaqueta las piezas (genera "Relieve" si hace falta)
 python3 tools/build_icons.py                # regenera los iconos
 python3 tools/build_single.py               # rehace dist/
 node    tools/check_puzzles.js              # comprueba que todos son jugables
@@ -128,6 +133,7 @@ seguirán usando la versión antigua.
   | Celtas | Maurizio Monge | MIT |
   | Espaciales (spatial) | Maurizio Monge | MIT |
   | Trazo (totoy) | Kosal Sen | CC BY 4.0 |
+  | Relieve | Colin M. L. Burnett (variante con sombreado, generada por `tools/build_pieces_3d.py`) | GPLv2+ |
 
   Las licencias están tomadas de
   [COPYING.md de lila](https://github.com/lichess-org/lila/blob/master/COPYING.md).

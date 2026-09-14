@@ -338,6 +338,8 @@ window.Play = (function () {
     if (summary.bestStreak) rows.push(["Mejor racha", summary.bestStreak]);
     if (summary.topRating) rows.push(["Dificultad alcanzada", summary.topRating]);
     if (summary.best !== undefined) rows.push(["Tu récord", summary.best]);
+    if (summary.bestWeek !== undefined) rows.push(["Mejor de la semana", summary.bestWeek]);
+    if (summary.bestToday !== undefined) rows.push(["Mejor del día", summary.bestToday]);
 
     els.gameover.hidden = false;
     els.gameover.innerHTML =

@@ -299,6 +299,7 @@ window.Modes = (function () {
         window.Store.setLastRun(played);
         var key = opts.recordKey;
         var isRecord = window.Store.setRecord(key, state.solved);
+        window.Store.pushScore(key, state.solved);
         if (state.bestStreak > (window.Store.state.records.streak || 0)) {
           window.Store.setRecord("streak", state.bestStreak);
         }
@@ -308,6 +309,8 @@ window.Modes = (function () {
           bestStreak: state.bestStreak,
           record: isRecord,
           best: window.Store.state.records[key],
+          bestWeek: window.Store.bestScore(key, "week"),
+          bestToday: window.Store.bestScore(key, "day"),
           topRating: Math.min(2900, Math.round(base + state.solved * step)),
           review: played.length
         };

@@ -16,6 +16,10 @@ window.Store = (function () {
     solvedCount: 0,
     seen: [],
     records: { survival: 0, rush3: 0, rush5: 0, streak: 0 },
+    // historial corto de puntuaciones por modo, solo para "mejor de la
+    // semana"/"mejor del día": [{ v: puntuación, t: cuándo }]. El récord
+    // absoluto no necesita esto, ya vive en "records".
+    scores: { survival: [], rush3: [], rush5: [] },
     stats: { solved: 0, failed: 0, byTheme: {}, days: {}, history: [] },
     settings: {
       sound: true, coords: true, autoNext: true, animations: true,
@@ -150,6 +154,44 @@ window.Store = (function () {
     return false;
   }
 
+  var SCORES_CAP_DAYS = 10; // más de una semana de margen, de sobra para "day"/"week"
+
+  /** Anota una puntuación de partida (supervivencia/contrarreloj) para las
+   * estadísticas de "mejor de la semana"/"mejor del día". */
+  function pushScore(key, value) {
+    var arr = state.scores[key] || (state.scores[key] = []);
+    var now = Date.now();
+    arr.push({ v: value, t: now });
+    var cutoff = now - SCORES_CAP_DAYS * 24 * 60 * 60 * 1000;
+    var i = 0;
+    while (i < arr.length && arr[i].t < cutoff) i++;
+    if (i > 0) arr.splice(0, i);
+    save();
+  }
+
+  /** Mejor puntuación registrada para ese modo, limitada a "day" (hoy,
+   * por fecha de calendario) o "week" (últimos 7 días naturales). Sin
+   * `scope`, mira todo el historial corto guardado. */
+  function bestScore(key, scope) {
+    var arr = state.scores[key] || [];
+    var today = todayKey();
+    var weekCutoff = null;
+    if (scope === "week") {
+      var d = new Date();
+      d.setDate(d.getDate() - 6);
+      d.setHours(0, 0, 0, 0);
+      weekCutoff = d.getTime();
+    }
+    var best = 0;
+    for (var i = 0; i < arr.length; i++) {
+      var e = arr[i];
+      if (scope === "day" && todayKey(new Date(e.t)) !== today) continue;
+      if (scope === "week" && e.t < weekCutoff) continue;
+      if (e.v > best) best = e.v;
+    }
+    return best;
+  }
+
   /** Días consecutivos jugando, contando hasta hoy o hasta ayer. */
   function streak() {
     var days = state.stats.days;
@@ -182,6 +224,8 @@ window.Store = (function () {
     markSeen: markSeen,
     setRating: setRating,
     setRecord: setRecord,
+    pushScore: pushScore,
+    bestScore: bestScore,
     setSetting: setSetting,
     setLastRun: setLastRun,
     streak: streak,

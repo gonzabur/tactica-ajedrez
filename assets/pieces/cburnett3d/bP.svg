@@ -1,15 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><defs><linearGradient id="gW" x1="0.2" y1="0.05" x2="0.7" y2="1">
-<stop offset="0" stop-color="#ffffff"/><stop offset="0.55" stop-color="#f0f0f0"/><stop offset="1" stop-color="#c7c7cf"/>
-</linearGradient>
-<linearGradient id="gB" x1="0.2" y1="0.05" x2="0.7" y2="1">
-<stop offset="0" stop-color="#5f5f66"/><stop offset="0.5" stop-color="#28282c"/><stop offset="1" stop-color="#050505"/>
-</linearGradient>
-<filter id="edge" x="-40%" y="-40%" width="180%" height="180%">
-<feDropShadow dx="0" dy="1.2" stdDeviation="1" flood-color="#000" flood-opacity="0.4"/>
-<feGaussianBlur in="SourceAlpha" stdDeviation="0.9" result="blur"/>
-<feSpecularLighting in="blur" surfaceScale="3.5" specularConstant="0.8" specularExponent="20" lighting-color="#ffffff" result="spec">
-<fePointLight x="-30" y="-55" z="45"/>
-</feSpecularLighting>
-<feComposite in="spec" in2="SourceAlpha" operator="in" result="specClip"/>
-<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specClip"/></feMerge>
-</filter></defs><g filter="url(#edge)"><path fill="url(#gB)" stroke="#000" stroke-linecap="round" stroke-width="1.5" d="M22.5 9a4 4 0 0 0-3.22 6.38 6.48 6.48 0 0 0-.87 10.65c-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47a6.46 6.46 0 0 0-.87-10.65A4.01 4.01 0 0 0 22.5 9z"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><defs><linearGradient id="gW" gradientUnits="userSpaceOnUse" x1="6" y1="15" x2="39" y2="25"><stop offset="0" stop-color="#ffffff"/><stop offset="0.62" stop-color="#ffffff"/><stop offset="0.72" stop-color="#aeaeb8"/><stop offset="1" stop-color="#aeaeb8"/></linearGradient><linearGradient id="gB" gradientUnits="userSpaceOnUse" x1="6" y1="15" x2="39" y2="25"><stop offset="0" stop-color="#aeaeb8"/><stop offset="0.1" stop-color="#aeaeb8"/><stop offset="0.18" stop-color="#3a3a42"/><stop offset="0.8" stop-color="#3a3a42"/><stop offset="0.88" stop-color="#121214"/><stop offset="1" stop-color="#121214"/></linearGradient><radialGradient id="gW-dot" cx="0.32" cy="0.3" r="0.85"><stop offset="0" stop-color="#ffffff"/><stop offset="0.55" stop-color="#ffffff"/><stop offset="1" stop-color="#aeaeb8"/></radialGradient><radialGradient id="gB-dot" cx="0.32" cy="0.3" r="0.9"><stop offset="0" stop-color="#aeaeb8"/><stop offset="0.3" stop-color="#aeaeb8"/><stop offset="0.55" stop-color="#3a3a42"/><stop offset="1" stop-color="#121214"/></radialGradient></defs><path fill="url(#gB)" stroke="#000" stroke-linecap="round" stroke-width="1.5" d="M22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z"/></svg>

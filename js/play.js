@@ -172,7 +172,7 @@ window.Play = (function () {
     }
 
     if (mode.autoNext) {
-      pending = window.setTimeout(nextPuzzle, 650);
+      pending = window.setTimeout(nextPuzzle, 1000);
     } else {
       renderActions("solved", res.puzzle);
     }

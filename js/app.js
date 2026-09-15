@@ -173,6 +173,20 @@ window.App = (function () {
 
     screen("screen-list", html);
     wireNav();
+    matchHeight(".mode-random", ".mode-weak");
+  }
+
+  /**
+   * Iguala el alto de b al de a. Hace falta para "Aleatorio"/"Donde
+   * flojeas": llevan textos de distinta longitud y "Aleatorio" además una
+   * insignia que le come sitio, así que en pantallas estrechas su texto
+   * puede pasar a dos líneas y crecer -- algo que un min-height fijo en
+   * CSS no puede seguir, porque cuánto crece depende del ancho exacto.
+   */
+  function matchHeight(a, b) {
+    var elA = document.querySelector(a), elB = document.querySelector(b);
+    if (!elA || !elB) return;
+    elB.style.minHeight = elA.getBoundingClientRect().height + "px";
   }
 
   function themeDetail(themeId) {

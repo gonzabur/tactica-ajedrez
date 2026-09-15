@@ -5,7 +5,7 @@
  * Al cambiar cualquier fichero hay que subir CACHE_VERSION para que el móvil
  * se descargue la versión nueva.
  */
-const CACHE_VERSION = "tactica-217a1962";
+const CACHE_VERSION = "tactica-9916c142";
 
 const ASSETS = [
   "./",

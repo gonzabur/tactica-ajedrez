@@ -648,6 +648,11 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   display: flex; align-items: center; justify-content: center;
   min-height: 0;
   container-type: size;          /* permite medir el hueco real con cqh */
+  /* el tablero llega a los bordes verticales (izquierdo/derecho) de la
+     pantalla: se cancela el padding lateral de .screen-play solo aquí, el
+     resto de la UI (cabecera, hud, barra de jugadas, pie) lo conserva */
+  margin-left: -10px;
+  margin-right: -10px;
 }
 
 /* --- barra de jugadas ------------------------------------------------------

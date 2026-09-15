@@ -131,26 +131,28 @@ window.App = (function () {
     html += '<p class="lead">Elige qué quieres practicar. Cada bloque agrupa puzzles con el mismo motivo, para que el patrón se te quede grabado.</p>';
 
     // El aleatorio va primero y destacado: es el que más se parece a jugar.
-    html += '<button class="mode-card mode-random" data-nav="#/tema/aleatorio">' +
-      '<span class="mode-icon" aria-hidden="true">⚄</span>' +
-      '<span class="mode-text"><b>Aleatorio</b>' +
-      "<small>Un motivo distinto cada vez, sin saber cuál toca</small></span>" +
-      '<span class="mode-badge">Recomendado</span></button>';
-
-    // Justo debajo: practicar los motivos donde menos aciertas (mismo
-    // umbral que "Dónde flojeas" en la pantalla de progreso). Bloqueada en
-    // gris hasta que haya datos suficientes, en vez de escondida, para que
-    // se vea que la app la tiene preparada y anime a seguir jugando.
+    // Justo debajo: practicar los motivos donde menos aciertas (mismo umbral
+    // que "Dónde flojeas" en progreso). Bloqueada en gris hasta que haya
+    // datos, en vez de escondida, para que se vea que la app la tiene
+    // preparada y anime a seguir jugando. mode-grid les da el gap estándar
+    // entre tarjetas (sin él, al ser <button>, se tocaban sin espacio).
     var weak = window.Store.weakestThemes(4);
-    html += weak.length
-      ? '<button class="mode-card mode-weak" data-nav="#/tema/debil">' +
-        '<span class="mode-icon" aria-hidden="true">🎯</span>' +
-        '<span class="mode-text"><b>Donde flojeas</b>' +
-        "<small>Los " + weak.length + " motivos en los que menos aciertas</small></span></button>"
-      : '<div class="mode-card mode-weak locked" aria-disabled="true">' +
-        '<span class="mode-icon" aria-hidden="true">🎯</span>' +
-        '<span class="mode-text"><b>Donde flojeas</b>' +
-        "<small>Sigue jugando para desbloquear esto</small></span></div>";
+    html += '<div class="mode-grid">' +
+      '<button class="mode-card mode-random" data-nav="#/tema/aleatorio">' +
+        '<span class="mode-icon" aria-hidden="true">⚄</span>' +
+        '<span class="mode-text"><b>Aleatorio</b>' +
+        "<small>Un motivo distinto cada vez, sin saber cuál toca</small></span>" +
+        '<span class="mode-badge">Recomendado</span></button>' +
+      (weak.length
+        ? '<button class="mode-card mode-weak" data-nav="#/tema/debil">' +
+          '<span class="mode-icon" aria-hidden="true">🎯</span>' +
+          '<span class="mode-text"><b>Donde flojeas</b>' +
+          "<small>Los " + weak.length + " motivos en los que menos aciertas</small></span></button>"
+        : '<div class="mode-card mode-weak locked" aria-disabled="true">' +
+          '<span class="mode-icon" aria-hidden="true">🎯</span>' +
+          '<span class="mode-text"><b>Donde flojeas</b>' +
+          "<small>Sigue jugando para desbloquear esto</small></span></div>") +
+      "</div>";
 
     html += '<h2 class="section-title">O elige un motivo concreto</h2>';
 

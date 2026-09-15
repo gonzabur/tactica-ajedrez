@@ -285,6 +285,19 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .mode-survival .mode-icon { color: var(--gold); }
 .mode-rush .mode-icon { color: var(--icon-blue); }
 .mode-themes .mode-icon { color: var(--icon-violet); }
+.mode-weak .mode-icon { color: var(--danger); }
+
+/* "Donde flojeas" antes de tener datos suficientes: se ve pero no se
+   puede abrir, para que quede claro que la app la tiene preparada. */
+.mode-card.locked {
+  cursor: default;
+  opacity: .55;
+  pointer-events: none;
+}
+.mode-card.locked .mode-icon { background: var(--surface); color: var(--text-faint); }
+
+.theme-item.static { cursor: default; }
+.theme-item.static:active { transform: none; border-color: var(--line); }
 
 .mode-text { flex: 1; min-width: 0; }
 .mode-text b { display: block; font-size: 16px; font-weight: 620; }
@@ -473,10 +486,11 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   margin-bottom: 8px;
 }
 .hm { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--surface-2); }
-.hm.l1 { background: rgba(var(--accent-rgb), .32); }
-.hm.l2 { background: rgba(var(--accent-rgb), .55); }
-.hm.l3 { background: rgba(var(--accent-rgb), .78); }
-.hm.l4 { background: var(--accent-strong); }
+.hm.l1 { background: rgba(var(--accent-rgb), .2); }
+.hm.l2 { background: rgba(var(--accent-rgb), .4); }
+.hm.l3 { background: rgba(var(--accent-rgb), .6); }
+.hm.l4 { background: rgba(var(--accent-rgb), .8); }
+.hm.l5 { background: var(--accent-strong); }
 .heatmap-legend {
   display: flex; align-items: center; gap: 4px;
   font-size: 11px; color: var(--text-faint);

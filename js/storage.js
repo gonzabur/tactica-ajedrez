@@ -192,6 +192,28 @@ window.Store = (function () {
     return best;
   }
 
+  /**
+   * Los temas con menos acierto, el mismo cálculo que alimenta la tarjeta
+   * "Dónde flojeas" de la pantalla de progreso: solo cuenta un tema si ya
+   * se ha intentado al menos `minAttempts` veces (si no, un solo fallo lo
+   * pondría al 0% y distorsionaría la lista), ordenados de peor a mejor
+   * acierto. `limit` recorta a los N peores; sin él devuelve todos los que
+   * cumplen el mínimo.
+   */
+  function weakestThemes(minAttempts, limit) {
+    var byTheme = state.stats.byTheme;
+    var rows = [];
+    for (var t in byTheme) {
+      if (!window.THEMES.labels[t]) continue;
+      var e = byTheme[t];
+      var total = e.ok + e.ko;
+      if (total < minAttempts) continue;
+      rows.push({ id: t, n: total, pct: Math.round(e.ok / total * 100) });
+    }
+    rows.sort(function (a, b) { return a.pct - b.pct; });
+    return limit ? rows.slice(0, limit) : rows;
+  }
+
   /** Días consecutivos jugando, contando hasta hoy o hasta ayer. */
   function streak() {
     var days = state.stats.days;
@@ -226,6 +248,7 @@ window.Store = (function () {
     setRecord: setRecord,
     pushScore: pushScore,
     bestScore: bestScore,
+    weakestThemes: weakestThemes,
     setSetting: setSetting,
     setLastRun: setLastRun,
     streak: streak,

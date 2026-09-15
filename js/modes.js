@@ -64,6 +64,9 @@ window.Modes = (function () {
   // --- Entrenamiento por tema -------------------------------------------
 
   var RANDOM_ID = "aleatorio";
+  var WEAK_ID = "debil";
+  var WEAK_MIN_ATTEMPTS = 4;   // igual que el umbral de "Dónde flojeas"
+  var WEAK_COUNT = 6;          // los mismos 6 temas que ahí se muestran
 
   /**
    * Niveles de dificultad. "Exigente" es el interesante: en vez de fijar un
@@ -113,6 +116,18 @@ window.Modes = (function () {
     return pool;
   }
 
+  /**
+   * Los temas donde menos aciertas, mismo cálculo y mismo umbral que la
+   * tarjeta "Dónde flojeas" de la pantalla de progreso -- para que jugar
+   * este modo sea literalmente "practica lo que esa pantalla te dice que
+   * te falla". Vacío hasta que haya al menos un tema con WEAK_MIN_ATTEMPTS
+   * intentos.
+   */
+  function weakPool() {
+    return window.Store.weakestThemes(WEAK_MIN_ATTEMPTS, WEAK_COUNT)
+      .map(function (row) { return row.id; });
+  }
+
   function shuffled(list) {
     var out = list.slice();
     for (var i = out.length - 1; i > 0; i--) {
@@ -130,13 +145,14 @@ window.Modes = (function () {
   function theme(themeId, levelId) {
     var level = LEVELS[levelId] || LEVELS.exigente;
     var random = themeId === RANDOM_ID;
+    var weak = themeId === WEAK_ID;
     var exclude = exclusions();
     var session = { solved: 0, failed: 0, delta: 0 };
     var challenge = CHALLENGE_START;
     var deck = [];
 
     function nextMotif() {
-      if (!deck.length) deck = shuffled(motifPool());
+      if (!deck.length) deck = shuffled(weak ? weakPool() : motifPool());
       return deck.pop();
     }
 
@@ -148,8 +164,8 @@ window.Modes = (function () {
     }
 
     return {
-      id: random ? "random" : "theme",
-      title: random ? "Aleatorio" : window.THEMES.name(themeId),
+      id: random ? "random" : (weak ? "weak" : "theme"),
+      title: random ? "Aleatorio" : (weak ? "Donde flojeas" : window.THEMES.name(themeId)),
       subtitle: level.name,
       themeId: themeId,
       allowRetry: true,
@@ -163,7 +179,7 @@ window.Modes = (function () {
         var puzzle = window.Data.pick({
           rating: target(),
           span: level.span,
-          theme: random ? nextMotif() : themeId,
+          theme: (random || weak) ? nextMotif() : themeId,
           exclude: exclude
         });
         if (puzzle) exclude[puzzle.index] = 1;
@@ -399,6 +415,7 @@ window.Modes = (function () {
 
   return {
     rated: rated, theme: theme, survival: survival, rush: rush,
-    review: review, levels: LEVELS, randomId: RANDOM_ID, motifPool: motifPool
+    review: review, levels: LEVELS, randomId: RANDOM_ID, motifPool: motifPool,
+    weakId: WEAK_ID, weakPool: weakPool
   };
 })();

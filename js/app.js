@@ -135,8 +135,24 @@ window.App = (function () {
       '<span class="mode-icon" aria-hidden="true">⚄</span>' +
       '<span class="mode-text"><b>Aleatorio</b>' +
       "<small>Un motivo distinto cada vez, sin saber cuál toca</small></span>" +
-      '<span class="mode-badge">Recomendado</span></button>' +
-      '<h2 class="section-title">O elige un motivo concreto</h2>';
+      '<span class="mode-badge">Recomendado</span></button>';
+
+    // Justo debajo: practicar los motivos donde menos aciertas (mismo
+    // umbral que "Dónde flojeas" en la pantalla de progreso). Bloqueada en
+    // gris hasta que haya datos suficientes, en vez de escondida, para que
+    // se vea que la app la tiene preparada y anime a seguir jugando.
+    var weak = window.Store.weakestThemes(4);
+    html += weak.length
+      ? '<button class="mode-card mode-weak" data-nav="#/tema/debil">' +
+        '<span class="mode-icon" aria-hidden="true">🎯</span>' +
+        '<span class="mode-text"><b>Donde flojeas</b>' +
+        "<small>Los " + weak.length + " motivos en los que menos aciertas</small></span></button>"
+      : '<div class="mode-card mode-weak locked" aria-disabled="true">' +
+        '<span class="mode-icon" aria-hidden="true">🎯</span>' +
+        '<span class="mode-text"><b>Donde flojeas</b>' +
+        "<small>Sigue jugando para desbloquear esto</small></span></div>";
+
+    html += '<h2 class="section-title">O elige un motivo concreto</h2>';
 
     window.THEMES.groups.forEach(function (group) {
       var items = group.themes.filter(function (t) { return window.Data.themeCount(t) > 0; });
@@ -161,6 +177,7 @@ window.App = (function () {
 
   function themeDetail(themeId) {
     if (themeId === window.Modes.randomId) { randomDetail(); return; }
+    if (themeId === window.Modes.weakId) { weakDetail(); return; }
     if (!window.THEMES.labels[themeId]) { go("#/temas"); return; }
     var stats = window.Store.state.stats.byTheme[themeId];
     var total = stats ? stats.ok + stats.ko : 0;
@@ -190,6 +207,24 @@ window.App = (function () {
         "<div><b>" + st.stats.solved + "</b><span>resueltos</span></div>" +
       "</div>" +
       levelSection(window.Modes.randomId)
+    );
+    wireNav();
+  }
+
+  /** Tampoco tiene tema propio: el mazo son los motivos donde peor vas. */
+  function weakDetail() {
+    var weak = window.Store.weakestThemes(4, 6);
+    screen("screen-list",
+      backHeader("Donde flojeas", "#/temas") +
+      '<p class="lead">Los motivos en los que menos aciertas, para reforzarlos. Se recalculan según avances: en cuanto mejores en uno, sale otro en su lugar.</p>' +
+      '<div class="theme-list">' +
+        weak.map(function (t) {
+          return '<div class="theme-item static">' +
+            "<b>" + esc(window.THEMES.name(t.id)) + "</b>" +
+            '<span class="theme-meta">' + t.pct + "% acierto · " + t.n + " intentos</span></div>";
+        }).join("") +
+      "</div>" +
+      levelSection(window.Modes.weakId)
     );
     wireNav();
   }
@@ -307,14 +342,7 @@ window.App = (function () {
     var s = st.stats;
     var total = s.solved + s.failed;
 
-    var themeRows = Object.keys(s.byTheme)
-      .filter(function (t) { return window.THEMES.labels[t] && s.byTheme[t].ok + s.byTheme[t].ko >= 4; })
-      .map(function (t) {
-        var e = s.byTheme[t];
-        return { id: t, n: e.ok + e.ko, pct: Math.round(e.ok / (e.ok + e.ko) * 100) };
-      })
-      .sort(function (a, b) { return a.pct - b.pct; });
-
+    var themeRows = window.Store.weakestThemes(4);
     var weakest = themeRows.slice(0, 6);
     // los fuertes solo tienen sentido si no son los mismos que los débiles
     var strongest = themeRows.length >= 10
@@ -378,14 +406,14 @@ window.App = (function () {
       for (var day = 0; day < 7; day++) {
         var key = window.Store.todayKey(d);
         var n = days[key] || 0;
-        var level = n === 0 ? 0 : n < 5 ? 1 : n < 15 ? 2 : n < 30 ? 3 : 4;
+        var level = n === 0 ? 0 : n < 10 ? 1 : n < 30 ? 2 : n < 60 ? 3 : n < 120 ? 4 : 5;
         cells.push('<i class="hm l' + level + '" title="' + key + ": " + n + ' puzzles"></i>');
         d.setDate(d.getDate() + 1);
       }
     }
     return '<div class="heatmap">' + cells.join("") + "</div>" +
       '<div class="heatmap-legend"><span>menos</span><i class="hm l0"></i><i class="hm l1"></i>' +
-      '<i class="hm l2"></i><i class="hm l3"></i><i class="hm l4"></i><span>más</span></div>';
+      '<i class="hm l2"></i><i class="hm l3"></i><i class="hm l4"></i><i class="hm l5"></i><span>más</span></div>';
   }
 
   /**

@@ -5,7 +5,7 @@
  * Al cambiar cualquier fichero hay que subir CACHE_VERSION para que el móvil
  * se descargue la versión nueva.
  */
-const CACHE_VERSION = "tactica-9d500e03";
+const CACHE_VERSION = "tactica-931f03df";
 
 const ASSETS = [
   "./",
@@ -60,14 +60,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Red primero: así un cambio se ve al momento con conexión, sin depender
+  // de que el usuario cierre y reabra la app para que entre la versión nueva
+  // del service worker. La caché solo entra si no hay red (avión, metro...).
   event.respondWith(
-    caches.match(request).then((hit) => hit || fetch(request).then((response) => {
-      // guardar lo que se vaya pidiendo, por si falta algo del precacheado
+    fetch(request).then((response) => {
       if (response.ok && response.type === "basic") {
         const copy = response.clone();
         caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
       }
       return response;
-    }))
+    }).catch(() => caches.match(request))
   );
 });

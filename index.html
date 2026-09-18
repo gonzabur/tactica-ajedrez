@@ -16,7 +16,12 @@
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="icon" href="assets/icon-192.png">
 
-<link rel="stylesheet" href="css/styles.css">
+<!-- ?v= -- el CSS es el que más veces se ha quedado pegado en la caché
+     HTTP del navegador (Safari/iOS en particular). Un nombre de URL
+     distinto por versión es la única forma 100% fiable de evitarlo:
+     hay que subir este valor (igual que CACHE_VERSION) en cada cambio
+     de css/styles.css. -->
+<link rel="stylesheet" href="css/styles.css?v=ae2d9785">
 
 <script id="tema-inicial">
   // Se estampa el tema ANTES de pintar nada: si no, quien tenga elegido el modo

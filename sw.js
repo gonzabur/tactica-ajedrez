@@ -5,7 +5,7 @@
  * Al cambiar cualquier fichero hay que subir CACHE_VERSION para que el móvil
  * se descargue la versión nueva.
  */
-const CACHE_VERSION = "tactica-af9fda8a";
+const CACHE_VERSION = "tactica-9acfb220";
 
 const ASSETS = [
   "./",
@@ -25,6 +25,7 @@ const ASSETS = [
   "./js/modes.js",
   "./js/play.js",
   "./js/app.js",
+  "./js/version.js",
   "./assets/icon-180.png",
   "./assets/icon-192.png",
   "./assets/icon-512.png"

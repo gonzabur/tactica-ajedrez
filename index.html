@@ -81,7 +81,16 @@
   // Funcionamiento sin conexión una vez visitada la app.
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js").catch(function () { /* sin conexión, da igual */ });
+      // updateViaCache:"none" -- si no, en iOS el propio sw.js se sirve de
+      // la caché HTTP y el móvil nunca se entera de que hay versión nueva.
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" })
+        .catch(function () { /* sin conexión, da igual */ });
+    });
+    // En cuanto la versión nueva toma el control, recargar: si no, la app
+    // abierta (o recién reabierta en iOS) se queda con los ficheros viejos
+    // aunque el SW ya se haya actualizado por detrás.
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      window.location.reload();
     });
   }
 </script>

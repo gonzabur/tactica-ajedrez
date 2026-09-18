@@ -16,6 +16,31 @@
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="icon" href="assets/icon-192.png">
 
+<script>
+  // En iOS el Service Worker se ha quedado varias veces atascado en una
+  // versión vieja aunque el HTML sí se actualizara (updateViaCache/
+  // controllerchange no bastan). Red de seguridad: si el build cambió,
+  // tirar el Service Worker y toda su caché a la fuerza y recargar una vez,
+  // en vez de confiar en que él solo se entere. Subir BUILD en cada commit
+  // (igual que CACHE_VERSION/APP_COMMIT).
+  (function () {
+    var BUILD = "c706f7c";
+    try {
+      if (localStorage.getItem("tactica.build") === BUILD) return;
+      localStorage.setItem("tactica.build", BUILD);
+    } catch (e) { return; }
+    if (!("serviceWorker" in navigator)) return;
+    Promise.all([
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        return Promise.all(regs.map(function (r) { return r.unregister(); }));
+      }),
+      window.caches ? caches.keys().then(function (keys) {
+        return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+      }) : Promise.resolve()
+    ]).then(function () { location.reload(); });
+  })();
+</script>
+
 <!-- ?v= -- el CSS es el que más veces se ha quedado pegado en la caché
      HTTP del navegador (Safari/iOS en particular). Un nombre de URL
      distinto por versión es la única forma 100% fiable de evitarlo:

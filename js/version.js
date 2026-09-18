@@ -4,4 +4,4 @@
  * el hash es el commit que hay que reflejarse aquí en un commit aparte.
  */
 window.APP_VERSION = "1.0.0";
-window.APP_COMMIT = "cd4dc50";
+window.APP_COMMIT = "c706f7c";

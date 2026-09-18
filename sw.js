@@ -34,7 +34,9 @@ const ASSETS = [
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
-      .then((cache) => cache.addAll(ASSETS))
+      .then((cache) => Promise.all(ASSETS.map((url) =>
+        fetch(url, { cache: "no-store" }).then((r) => cache.put(url, r))
+      )))
       .then(() => self.skipWaiting())
   );
 });
@@ -56,7 +58,7 @@ self.addEventListener("fetch", (event) => {
   // Navegación: servir siempre la app aunque no haya red.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match("./index.html"))
+      fetch(request, { cache: "no-store" }).catch(() => caches.match("./index.html"))
     );
     return;
   }
@@ -64,8 +66,10 @@ self.addEventListener("fetch", (event) => {
   // Red primero: así un cambio se ve al momento con conexión, sin depender
   // de que el usuario cierre y reabra la app para que entre la versión nueva
   // del service worker. La caché solo entra si no hay red (avión, metro...).
+  // no-store: si no, el propio navegador puede servir el CSS/JS desde SU
+  // caché HTTP (la de GitHub Pages) aunque aquí pidamos red primero.
   event.respondWith(
-    fetch(request).then((response) => {
+    fetch(request, { cache: "no-store" }).then((response) => {
       if (response.ok && response.type === "basic") {
         const copy = response.clone();
         caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));

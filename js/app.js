@@ -577,7 +577,8 @@ window.App = (function () {
       '<p class="credits">Puzzles de la base de datos abierta de <b>Lichess</b> (CC0). ' +
       "Reglas de ajedrez con chess.js (BSD). Los juegos de piezas son obra de " +
       "distintos autores, cada uno con su licencia; el del juego elegido aparece " +
-      "arriba, junto al selector.</p>"
+      "arriba, junto al selector.</p>" +
+      '<p class="credit-line">Versión ' + window.APP_VERSION + " (" + window.APP_COMMIT + ")</p>"
     );
     wireNav();
 

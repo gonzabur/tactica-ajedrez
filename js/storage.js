@@ -8,7 +8,8 @@ window.Store = (function () {
   // index.html pueda leerlo sin analizar todo el progreso y evitar así el
   // parpadeo de fondo oscuro antes de que cargue la app.
   var THEME_KEY = "tactica.tema";
-  var SEEN_CAP = 9000;      // puzzles recordados como vistos antes de reciclar
+  var SEEN_CAP = 70000;     // cubre todo el banco (68.792 puzzles): solo son
+                            // índices, así que no pesa nada de más recordarlos
   var HISTORY_CAP = 400;
 
   var defaults = {

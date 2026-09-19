@@ -5,13 +5,13 @@
  * Al cambiar cualquier fichero hay que subir CACHE_VERSION para que el móvil
  * se descargue la versión nueva.
  */
-const CACHE_VERSION = "tactica-a8b2ccd5";
+const CACHE_VERSION = "tactica-28667aee";
 
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./css/styles.css?v=d569dc7f",
+  "./css/styles.css?v=24a820ff",
   "./vendor/chess.js",
   "./data/puzzles.js",
   "./js/pieces.js",

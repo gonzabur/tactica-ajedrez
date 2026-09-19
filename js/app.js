@@ -573,6 +573,12 @@ window.App = (function () {
       "</div>" +
 
       '<h2 class="section-title">Datos</h2>' +
+      '<p class="group-hint">Todo vive en este dispositivo: si lo pierdes o borras los datos del navegador, se pierde con él. Exporta un fichero de vez en cuando para tener una copia.</p>' +
+      '<div class="data-actions">' +
+        '<button class="btn ghost" data-act="export">Exportar</button>' +
+        '<button class="btn ghost" data-act="import">Importar</button>' +
+      "</div>" +
+      '<input type="file" id="import-file" accept="application/json" hidden>' +
       '<button class="btn danger wide" data-act="reset">Borrar todo mi progreso</button>' +
       '<p class="credits">Puzzles de la base de datos abierta de <b>Lichess</b> (CC0). ' +
       "Reglas de ajedrez con chess.js (BSD). Los juegos de piezas son obra de " +
@@ -613,6 +619,39 @@ window.App = (function () {
         window.Store.state.rating + delta));
       window.Store.setRating(next);
       root.querySelector("#rating-now").textContent = next;
+    });
+
+    on('[data-act="export"]', function () {
+      var blob = new Blob([window.Store.exportJson()], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "tactica-progreso-" + window.Store.todayKey() + ".json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    on('[data-act="import"]', function () {
+      root.querySelector("#import-file").click();
+    });
+
+    root.querySelector("#import-file").addEventListener("change", function (e) {
+      var file = e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      if (!window.confirm("Esto reemplaza tu progreso actual (rating, récords, estadísticas) por el del fichero. ¿Seguro?")) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          window.Store.importJson(reader.result);
+        } catch (err) {
+          window.alert("No se ha podido importar: " + err.message);
+          return;
+        }
+        applyAppearance();
+        go("#/");
+      };
+      reader.readAsText(file);
     });
 
     on('[data-act="reset"]', function () {

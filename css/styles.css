@@ -532,6 +532,9 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 }
 .rating-set .rating-value { margin: 0; font-size: 32px; }
 
+.data-actions { display: flex; gap: 9px; margin-bottom: 10px; }
+.data-actions .btn { flex: 1; }
+
 .credits {
   font-size: 11.5px; line-height: 1.6;
   color: var(--text-faint);

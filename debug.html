@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Debug</title>
+<link rel="stylesheet" href="css/styles.css?v=ae2d9785">
+</head>
+<body>
+<div id="app" class="screen screen-play">
+  <header class="play-head"><div class="play-title"><h1>Debug</h1></div></header>
+  <div class="hud"></div>
+  <div class="board-wrap"><div class="board-host board"></div></div>
+  <div class="movebar"></div>
+  <footer class="play-foot"></footer>
+</div>
+<pre id="out" style="position:fixed;top:0;left:0;right:0;background:#fff;color:#000;font-size:13px;padding:10px;z-index:9999;white-space:pre-wrap;margin:0;"></pre>
+<script>
+  function report() {
+    var w = document.querySelector('.board-wrap');
+    var b = document.querySelector('.board');
+    var cs = getComputedStyle(w);
+    var r = w.getBoundingClientRect();
+    var rb = b.getBoundingClientRect();
+    document.getElementById('out').textContent =
+      'UA=' + navigator.userAgent + '\n' +
+      'innerWidth=' + innerWidth + '\n' +
+      'wrap marginLeft=' + cs.marginLeft + ' marginRight=' + cs.marginRight + '\n' +
+      'wrap containerType=' + cs.containerType + '\n' +
+      'wrap rect x=' + r.x + ' width=' + r.width + '\n' +
+      'board rect x=' + rb.x + ' width=' + rb.width;
+  }
+  report();
+  window.addEventListener('resize', report);
+</script>
+</body>
+</html>

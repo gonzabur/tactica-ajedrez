@@ -237,6 +237,25 @@ window.Store = (function () {
     } catch (e) { /* ignorar */ }
   }
 
+  /** Todo el progreso como JSON, para guardarlo fuera del dispositivo. */
+  function exportJson() {
+    return JSON.stringify(state, null, 2);
+  }
+
+  /** Restaura el progreso desde un JSON de exportJson(). Lanza si el texto
+   *  no tiene pinta de ser uno: mejor avisar que dejar a medias un progreso
+   *  bueno con datos que no son de esta app. */
+  function importJson(raw) {
+    var parsed = JSON.parse(raw);
+    if (typeof parsed.rating !== "number" || !parsed.stats || !parsed.settings) {
+      throw new Error("No es un fichero de progreso de Táctica.");
+    }
+    state = merge(clone(defaults), parsed);
+    seenSet = {};
+    for (var i = 0; i < state.seen.length; i++) seenSet[state.seen[i]] = 1;
+    save();
+  }
+
   return {
     get state() { return state; },
     get seenSet() { return seenSet; },
@@ -254,6 +273,8 @@ window.Store = (function () {
     streak: streak,
     solvedToday: solvedToday,
     todayKey: todayKey,
-    reset: reset
+    reset: reset,
+    exportJson: exportJson,
+    importJson: importJson
   };
 })();

@@ -630,20 +630,24 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 
 /* --- pantalla de juego ---------------------------------------------------- */
 
-.hud { display: flex; gap: 8px; }
+.hud { display: flex; gap: 6px; }
 .hud-item {
   flex: 1;
-  display: flex; align-items: baseline; gap: 6px;
+  min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
   background: var(--surface);
   border-radius: 11px;
-  padding: 8px 12px;
+  padding: 6px 9px;
 }
-.hud-label { font-size: 11px; color: var(--text-faint); }
+.hud-label {
+  font-size: 10.5px; color: var(--text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .hud-value {
-  margin-left: auto;
-  font-size: 17px; font-weight: 700;
+  font-size: 16px; font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .hud-item.danger .hud-value { color: var(--danger); }
 .hearts {

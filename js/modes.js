@@ -277,6 +277,7 @@ window.Modes = (function () {
       autoNext: true,
       lives: opts.lives,
       timed: opts.seconds || 0,
+      puzzleSeconds: opts.puzzleSeconds || 0,
       affectsRating: false,
 
       next: function () {
@@ -346,7 +347,7 @@ window.Modes = (function () {
   function rush(minutes) {
     return ladder({
       id: "rush" + minutes, title: "Contrarreloj", subtitle: minutes + " minutos",
-      lives: 3, seconds: minutes * 60, recordKey: "rush" + minutes, step: 32
+      lives: 3, seconds: minutes * 60, puzzleSeconds: 30, recordKey: "rush" + minutes, step: 32
     });
   }
 

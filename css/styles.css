@@ -617,7 +617,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .btn {
   border: 1px solid transparent;
   border-radius: 12px;
-  padding: 13px 18px;
+  padding: 9px 18px;
   font-size: 15px; font-weight: 600;
   cursor: pointer;
   transition: transform .1s, background .15s;
@@ -675,7 +675,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 
 .movebar {
   display: flex; align-items: center; gap: 5px;
-  margin-top: 7px;
+  margin-top: 4px;
 }
 
 .nav-btn {
@@ -730,13 +730,13 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .mv.on { background: var(--accent); color: var(--accent-ink); }
 
 
-.play-foot { padding-bottom: 4px; }
+.play-foot { padding-bottom: 0; }
 
 .status {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   font-size: 14.5px; font-weight: 550;
   text-align: center;
-  min-height: 20px;
+  min-height: 16px;
   color: var(--text-dim);
 }
 .status.good { color: var(--accent-strong); }
@@ -753,15 +753,15 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 
 .actions { display: flex; gap: 9px; justify-content: center; }
 .actions .btn { flex: 1; }
-.hint-note { font-size: 12.5px; color: var(--text-faint); padding: 8px 0; }
+.hint-note { font-size: 12.5px; color: var(--text-faint); padding: 6px 0; }
 
 /* Altura fija y contenido recortado: el hueco mide siempre lo mismo, con o
    sin etiquetas, y así el tablero no se mueve al resolver el puzzle. */
 .puzzle-info {
-  height: 68px;
+  height: 46px;
   overflow: hidden;
   text-align: center;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 .chips {
   display: flex; gap: 6px;
@@ -780,10 +780,10 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .chip.muted { background: var(--surface-2); color: var(--text-faint); }
 .theme-desc {
   font-size: 12.5px; color: var(--text-faint);
-  margin: 8px 0 0; line-height: 1.45;
-  /* como mucho dos líneas, para que la altura del hueco no se dispare */
+  margin: 4px 0 0; line-height: 1.3;
+  /* una sola línea, para que la altura del hueco no se dispare */
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

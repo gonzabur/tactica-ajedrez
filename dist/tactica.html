@@ -203,6 +203,12 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   padding: 6px 0 10px;
 }
 
+/* Un poco más de aire arriba en las pantallas de lista (no en la de juego,
+   que ya va justa de alto): así el degradado de las tarjetas de arriba
+   (rating-card, progress-hero) queda más lejos de la barra de estado y no
+   se nota tanto el desenfoque que pone iOS ahí en la app instalada. */
+.head, .home-head { margin-top: 8px; }
+
 .head h1, .play-title h1 {
   font-size: 18px;
   font-weight: 650;
@@ -75092,7 +75098,7 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * el hash es el commit que hay que reflejarse aquí en un commit aparte.
  */
 window.APP_VERSION = "1.0.0";
-window.APP_COMMIT = "fd66cf2";
+window.APP_COMMIT = "e206bd8";
 
 </script>
 </body>

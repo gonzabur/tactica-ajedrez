@@ -11,6 +11,8 @@ window.Play = (function () {
   var els = {};
   var clock = null;
   var secondsLeft = 0;
+  var puzzleClock = null;
+  var puzzleSecondsLeft = 0;
   var over = false;
   var pending = null;      // temporizador del salto al siguiente puzzle
 
@@ -113,6 +115,7 @@ window.Play = (function () {
     document.removeEventListener("keydown", onKey);
     if (player) player.stop();
     if (clock) { window.clearInterval(clock); clock = null; }
+    stopPuzzleClock();
     if (pending) { window.clearTimeout(pending); pending = null; }
     player = null;
     board = null;
@@ -134,6 +137,7 @@ window.Play = (function () {
   function onPuzzleLoad(puzzle, color) {
     setStatus(color === "w" ? "Juegan las blancas" : "Juegan las negras", "turn " + color);
     renderActions("playing");
+    if (mode.puzzleSeconds) startPuzzleClock(mode.puzzleSeconds);
     renderHud();
   }
 
@@ -155,6 +159,7 @@ window.Play = (function () {
   }
 
   function onSolved(res) {
+    stopPuzzleClock();
     if (window.Store.settings.sound) {
       if (res.mate) window.Sound.win(); else window.Sound.right();
     }
@@ -180,6 +185,7 @@ window.Play = (function () {
 
   /** Tras enseñar la solución: cuenta el fallo y sigue. */
   function onRevealed(puzzle) {
+    stopPuzzleClock();
     var outcome = mode.result({ puzzle: puzzle, clean: false, failed: true }) || {};
     renderHud();
     if (outcome.over) { finish(mode.finish ? mode.finish() : {}); return; }
@@ -241,6 +247,9 @@ window.Play = (function () {
     if (mode.timed) {
       items = [{ label: "Tiempo", value: formatTime(secondsLeft), danger: secondsLeft <= 15 }]
         .concat(items);
+    }
+    if (mode.puzzleSeconds) {
+      items = items.concat([{ label: "Puzzle", value: String(puzzleSecondsLeft), danger: puzzleSecondsLeft <= 10 }]);
     }
     els.hud.innerHTML = items.map(function (item) {
       return '<div class="hud-item' + (item.danger ? " danger" : "") + '">' +
@@ -316,6 +325,25 @@ window.Play = (function () {
   function formatTime(total) {
     var m = Math.floor(total / 60), s = total % 60;
     return m + ":" + String(s).padStart(2, "0");
+  }
+
+  /** Cuenta atrás por puzzle (contrarreloj): si se agota, se da por fallado
+   *  igual que una jugada equivocada, sin destapar la solución. */
+  function startPuzzleClock(seconds) {
+    stopPuzzleClock();
+    puzzleSecondsLeft = seconds;
+    puzzleClock = window.setInterval(function () {
+      puzzleSecondsLeft--;
+      renderHud();
+      if (puzzleSecondsLeft <= 0) {
+        stopPuzzleClock();
+        player.fail();
+      }
+    }, 1000);
+  }
+
+  function stopPuzzleClock() {
+    if (puzzleClock) { window.clearInterval(puzzleClock); puzzleClock = null; }
   }
 
   // --- fin de partida ----------------------------------------------------

@@ -804,6 +804,8 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .chips::-webkit-scrollbar { display: none; }
 .chip {
   font-size: 11.5px; font-weight: 600;
+  white-space: nowrap;    /* si no cabe, .chips lo desplaza de lado, no lo envuelve */
+  flex: none;
   background: rgba(var(--accent-rgb), .16);
   color: var(--accent-strong);
   padding: 4px 10px; border-radius: 20px;
@@ -888,10 +890,14 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 }
 .board-marks, .board-pieces, .board-flash { pointer-events: none; }
 
-.board-squares {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(8, 1fr);
+/* Mismo esquema que .piece/.mark (transform: translate(%) en vez de grid):
+   si las casillas se colocan con un sistema distinto al de las piezas, el
+   redondeo de cada uno por su lado puede desalinearlos entre sí un par de
+   píxeles. */
+.sq {
+  position: absolute;
+  top: 0; left: 0;
+  width: 12.5%; height: 12.5%;
 }
 .sq.light { background: var(--sq-light); }
 .sq.dark  { background: var(--sq-dark); }
@@ -72721,7 +72727,10 @@ window.Board = (function () {
       var html = "";
       for (var vr = 0; vr < 8; vr++) {
         for (var vf = 0; vf < 8; vf++) {
-          html += '<div class="sq ' + ((vf + vr) % 2 ? "dark" : "light") + '"></div>';
+          // mismo transform que place(): así no hay redondeo de grid por un
+          // lado y de transform por otro que las desalinee un par de píxeles
+          html += '<div class="sq ' + ((vf + vr) % 2 ? "dark" : "light") +
+            '" style="transform:translate(' + vf * 100 + "%," + vr * 100 + '%)"></div>';
         }
       }
       squaresLayer.innerHTML = html;
@@ -75086,6 +75095,6 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * el hash es el commit que hay que reflejarse aquí en un commit aparte.
  */
 window.APP_VERSION = "1.0.0";
-window.APP_COMMIT = "e206bd8";
+window.APP_COMMIT = "d0a93d8";
 
 </script>

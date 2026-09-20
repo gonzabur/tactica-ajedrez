@@ -126,7 +126,10 @@ window.Board = (function () {
       var html = "";
       for (var vr = 0; vr < 8; vr++) {
         for (var vf = 0; vf < 8; vf++) {
-          html += '<div class="sq ' + ((vf + vr) % 2 ? "dark" : "light") + '"></div>';
+          // mismo transform que place(): así no hay redondeo de grid por un
+          // lado y de transform por otro que las desalinee un par de píxeles
+          html += '<div class="sq ' + ((vf + vr) % 2 ? "dark" : "light") +
+            '" style="transform:translate(' + vf * 100 + "%," + vr * 100 + '%)"></div>';
         }
       }
       squaresLayer.innerHTML = html;

@@ -670,6 +670,10 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   font-size: 10.5px; color: var(--text-faint);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.hud-value-row {
+  display: flex; align-items: baseline; gap: 5px;
+  min-width: 0;
+}
 .hud-value {
   font-size: 16px; font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -74170,12 +74174,16 @@ window.Play = (function () {
       items = items.concat([{ label: "Puzzle", value: String(puzzleSecondsLeft), danger: puzzleSecondsLeft <= 10 }]);
     }
     els.hud.innerHTML = items.map(function (item) {
+      // value y trend van en la misma fila (no una tercera línea apilada):
+      // si no, el marcador crece en alto en cuanto sale el trend y empuja
+      // el tablero hacia abajo justo al resolver.
       return '<div class="hud-item' + (item.danger ? " danger" : "") + '">' +
         '<span class="hud-label">' + item.label + "</span>" +
-        '<span class="hud-value">' + item.value + "</span>" +
-        (item.trend ? '<span class="hud-trend ' + (item.trend >= 0 ? "up" : "down") + '">' +
-          (item.trend >= 0 ? "+" : "") + item.trend + "</span>" : "") +
-        "</div>";
+        '<span class="hud-value-row">' +
+          '<span class="hud-value">' + item.value + "</span>" +
+          (item.trend ? '<span class="hud-trend ' + (item.trend >= 0 ? "up" : "down") + '">' +
+            (item.trend >= 0 ? "+" : "") + item.trend + "</span>" : "") +
+        "</span></div>";
     }).join("");
   }
 
@@ -75095,6 +75103,6 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * el hash es el commit que hay que reflejarse aquí en un commit aparte.
  */
 window.APP_VERSION = "1.0.0";
-window.APP_COMMIT = "d0a93d8";
+window.APP_COMMIT = "5980c4d";
 
 </script>

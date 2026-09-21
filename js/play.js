@@ -252,12 +252,16 @@ window.Play = (function () {
       items = items.concat([{ label: "Puzzle", value: String(puzzleSecondsLeft), danger: puzzleSecondsLeft <= 10 }]);
     }
     els.hud.innerHTML = items.map(function (item) {
+      // value y trend van en la misma fila (no una tercera línea apilada):
+      // si no, el marcador crece en alto en cuanto sale el trend y empuja
+      // el tablero hacia abajo justo al resolver.
       return '<div class="hud-item' + (item.danger ? " danger" : "") + '">' +
         '<span class="hud-label">' + item.label + "</span>" +
-        '<span class="hud-value">' + item.value + "</span>" +
-        (item.trend ? '<span class="hud-trend ' + (item.trend >= 0 ? "up" : "down") + '">' +
-          (item.trend >= 0 ? "+" : "") + item.trend + "</span>" : "") +
-        "</div>";
+        '<span class="hud-value-row">' +
+          '<span class="hud-value">' + item.value + "</span>" +
+          (item.trend ? '<span class="hud-trend ' + (item.trend >= 0 ? "up" : "down") + '">' +
+            (item.trend >= 0 ? "+" : "") + item.trend + "</span>" : "") +
+        "</span></div>";
     }).join("");
   }
 

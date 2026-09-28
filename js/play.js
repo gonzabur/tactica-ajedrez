@@ -366,12 +366,20 @@ window.Play = (function () {
     window.Store.save();
 
     var rows = [];
-    if (summary.score !== undefined) rows.push(["Resueltos", summary.score]);
-    if (summary.bestStreak) rows.push(["Mejor racha", summary.bestStreak]);
-    if (summary.topRating) rows.push(["Dificultad alcanzada", summary.topRating]);
+    if (summary.bestStreak) rows.push(["Racha más larga", summary.bestStreak]);
+    if (summary.hardest) rows.push(["Problema más difícil resuelto", summary.hardest]);
+    if (summary.avgSeconds) rows.push(["Tiempo medio por problema", formatTime(summary.avgSeconds)]);
     if (summary.best !== undefined) rows.push(["Tu récord", summary.best]);
-    if (summary.bestWeek !== undefined) rows.push(["Mejor de la semana", summary.bestWeek]);
-    if (summary.bestToday !== undefined) rows.push(["Mejor del día", summary.bestToday]);
+
+    // Puesto de esta partida entre las tuyas (no hay servidor: el ranking
+    // es contra ti mismo)
+    var rank = summary.rank;
+    var rankHtml = rank
+      ? '<div class="rank-strip">' + [["Hoy", rank.day], ["Esta semana", rank.week],
+          ["Todo el tiempo", rank.all]].map(function (r) {
+            return "<div><span>" + r[0] + "</span><b>#" + r[1] + "</b></div>";
+          }).join("") + "</div>"
+      : "";
 
     els.gameover.hidden = false;
     els.gameover.innerHTML =
@@ -379,6 +387,7 @@ window.Play = (function () {
         (summary.record ? '<div class="record-badge">¡Récord nuevo!</div>' : "") +
         "<h2>" + (headline || "Fin de la partida") + "</h2>" +
         (summary.score !== undefined ? '<div class="big-score">' + summary.score + "</div>" : "") +
+        rankHtml +
         '<dl class="summary">' + rows.map(function (r) {
           return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
         }).join("") + "</dl>" +

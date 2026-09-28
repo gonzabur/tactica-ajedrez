@@ -842,6 +842,23 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   font-variant-numeric: tabular-nums;
   color: var(--accent-strong);
 }
+.rank-strip {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  align-items: end;           /* si una etiqueta ocupa dos líneas, los números siguen alineados */
+  gap: 6px;
+  margin-top: 10px;
+}
+.rank-strip span {
+  display: block;
+  font-size: 10px; font-weight: 650;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-faint);
+}
+.rank-strip b {
+  display: block;
+  font-size: 24px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
 .summary {
   display: grid; grid-template-columns: 1fr auto;
   gap: 7px 12px;

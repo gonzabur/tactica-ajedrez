@@ -93,6 +93,40 @@
     }
   })();
 
+  // --- Ranking y estadísticas de fin de partida -----------------------------
+  (function () {
+    var saved = window.Store.exportJson();
+    try {
+      window.Store.reset();
+      var hace30dias = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      window.Store.state.scores.survival.push({ v: 50, t: hace30dias });
+      window.Store.pushScore("survival", 12);
+      window.Store.pushScore("survival", 8);
+
+      assert("Ranking: la mejor de hoy es la #1 de hoy",
+        window.Store.rankScore("survival", 12, "day") === 1);
+      assert("Ranking: una partida vieja mejor cuenta en 'todo el tiempo'",
+        window.Store.rankScore("survival", 12) === 2);
+      assert("Ranking: pero no en 'esta semana'",
+        window.Store.rankScore("survival", 12, "week") === 1);
+      assert("Ranking: los empates comparten puesto",
+        window.Store.rankScore("survival", 8, "day") === 2);
+
+      var mode = window.Modes.survival();
+      mode.result({ puzzle: { index: 0, themes: [], rating: 1400 }, clean: true });
+      mode.result({ puzzle: { index: 1, themes: [], rating: 1600 }, clean: false });
+      mode.result({ puzzle: { index: 2, themes: [], rating: 1500 }, clean: true });
+      var s = mode.finish();
+      assert("Fin de partida: el problema más difícil es el más alto ACERTADO",
+        s.hardest === 1500, "obtenido=" + s.hardest);
+      // 2 aciertos, detrás de las de 12 y 8 de hoy
+      assert("Fin de partida: la partida recién jugada entra en el ranking",
+        s.rank.day === 3, "obtenido=" + s.rank.day);
+    } finally {
+      window.Store.importJson(saved);
+    }
+  })();
+
   // --- Store.weakestThemes --------------------------------------------------
   (function () {
     var saved = window.Store.exportJson();

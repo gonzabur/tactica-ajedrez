@@ -17,9 +17,8 @@ window.Store = (function () {
     solvedCount: 0,
     seen: [],
     records: { survival: 0, rush3: 0, rush5: 0, streak: 0 },
-    // historial corto de puntuaciones por modo, solo para "mejor de la
-    // semana"/"mejor del día": [{ v: puntuación, t: cuándo }]. El récord
-    // absoluto no necesita esto, ya vive en "records".
+    // todas las puntuaciones por modo, para el ranking de hoy/semana/siempre:
+    // [{ v: puntuación, t: cuándo }]
     scores: { survival: [], rush3: [], rush5: [] },
     stats: { solved: 0, failed: 0, byTheme: {}, days: {}, history: [] },
     settings: {
@@ -155,42 +154,32 @@ window.Store = (function () {
     return false;
   }
 
-  var SCORES_CAP_DAYS = 10; // más de una semana de margen, de sobra para "day"/"week"
-
-  /** Anota una puntuación de partida (supervivencia/contrarreloj) para las
-   * estadísticas de "mejor de la semana"/"mejor del día". */
+  /** Anota una puntuación de partida (supervivencia/contrarreloj) para el
+   * ranking. Sin tope: son ~25 bytes por partida. */
   function pushScore(key, value) {
     var arr = state.scores[key] || (state.scores[key] = []);
-    var now = Date.now();
-    arr.push({ v: value, t: now });
-    var cutoff = now - SCORES_CAP_DAYS * 24 * 60 * 60 * 1000;
-    var i = 0;
-    while (i < arr.length && arr[i].t < cutoff) i++;
-    if (i > 0) arr.splice(0, i);
+    arr.push({ v: value, t: Date.now() });
     save();
   }
 
-  /** Mejor puntuación registrada para ese modo, limitada a "day" (hoy,
-   * por fecha de calendario) o "week" (últimos 7 días naturales). Sin
-   * `scope`, mira todo el historial corto guardado. */
-  function bestScore(key, scope) {
+  /** Puesto de `value` entre las partidas guardadas de ese modo (1 = la
+   * mejor; los empates comparten puesto), limitado a "day" (hoy, por fecha
+   * de calendario), "week" (últimos 7 días naturales) o todo el historial. */
+  function rankScore(key, value, scope) {
     var arr = state.scores[key] || [];
     var today = todayKey();
-    var weekCutoff = null;
-    if (scope === "week") {
-      var d = new Date();
-      d.setDate(d.getDate() - 6);
-      d.setHours(0, 0, 0, 0);
-      weekCutoff = d.getTime();
-    }
-    var best = 0;
+    var d = new Date();
+    d.setDate(d.getDate() - 6);
+    d.setHours(0, 0, 0, 0);
+    var weekCutoff = d.getTime();
+    var better = 0;
     for (var i = 0; i < arr.length; i++) {
       var e = arr[i];
       if (scope === "day" && todayKey(new Date(e.t)) !== today) continue;
       if (scope === "week" && e.t < weekCutoff) continue;
-      if (e.v > best) best = e.v;
+      if (e.v > value) better++;
     }
-    return best;
+    return better + 1;
   }
 
   /**
@@ -267,7 +256,7 @@ window.Store = (function () {
     setRating: setRating,
     setRecord: setRecord,
     pushScore: pushScore,
-    bestScore: bestScore,
+    rankScore: rankScore,
     weakestThemes: weakestThemes,
     setSetting: setSetting,
     setLastRun: setLastRun,

@@ -872,6 +872,23 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   font-variant-numeric: tabular-nums;
   color: var(--accent-strong);
 }
+.rank-strip {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  align-items: end;           /* si una etiqueta ocupa dos líneas, los números siguen alineados */
+  gap: 6px;
+  margin-top: 10px;
+}
+.rank-strip span {
+  display: block;
+  font-size: 10px; font-weight: 650;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-faint);
+}
+.rank-strip b {
+  display: block;
+  font-size: 24px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
 .summary {
   display: grid; grid-template-columns: 1fr auto;
   gap: 7px 12px;
@@ -72041,9 +72058,8 @@ window.Store = (function () {
     solvedCount: 0,
     seen: [],
     records: { survival: 0, rush3: 0, rush5: 0, streak: 0 },
-    // historial corto de puntuaciones por modo, solo para "mejor de la
-    // semana"/"mejor del día": [{ v: puntuación, t: cuándo }]. El récord
-    // absoluto no necesita esto, ya vive en "records".
+    // todas las puntuaciones por modo, para el ranking de hoy/semana/siempre:
+    // [{ v: puntuación, t: cuándo }]
     scores: { survival: [], rush3: [], rush5: [] },
     stats: { solved: 0, failed: 0, byTheme: {}, days: {}, history: [] },
     settings: {
@@ -72179,42 +72195,32 @@ window.Store = (function () {
     return false;
   }
 
-  var SCORES_CAP_DAYS = 10; // más de una semana de margen, de sobra para "day"/"week"
-
-  /** Anota una puntuación de partida (supervivencia/contrarreloj) para las
-   * estadísticas de "mejor de la semana"/"mejor del día". */
+  /** Anota una puntuación de partida (supervivencia/contrarreloj) para el
+   * ranking. Sin tope: son ~25 bytes por partida. */
   function pushScore(key, value) {
     var arr = state.scores[key] || (state.scores[key] = []);
-    var now = Date.now();
-    arr.push({ v: value, t: now });
-    var cutoff = now - SCORES_CAP_DAYS * 24 * 60 * 60 * 1000;
-    var i = 0;
-    while (i < arr.length && arr[i].t < cutoff) i++;
-    if (i > 0) arr.splice(0, i);
+    arr.push({ v: value, t: Date.now() });
     save();
   }
 
-  /** Mejor puntuación registrada para ese modo, limitada a "day" (hoy,
-   * por fecha de calendario) o "week" (últimos 7 días naturales). Sin
-   * `scope`, mira todo el historial corto guardado. */
-  function bestScore(key, scope) {
+  /** Puesto de `value` entre las partidas guardadas de ese modo (1 = la
+   * mejor; los empates comparten puesto), limitado a "day" (hoy, por fecha
+   * de calendario), "week" (últimos 7 días naturales) o todo el historial. */
+  function rankScore(key, value, scope) {
     var arr = state.scores[key] || [];
     var today = todayKey();
-    var weekCutoff = null;
-    if (scope === "week") {
-      var d = new Date();
-      d.setDate(d.getDate() - 6);
-      d.setHours(0, 0, 0, 0);
-      weekCutoff = d.getTime();
-    }
-    var best = 0;
+    var d = new Date();
+    d.setDate(d.getDate() - 6);
+    d.setHours(0, 0, 0, 0);
+    var weekCutoff = d.getTime();
+    var better = 0;
     for (var i = 0; i < arr.length; i++) {
       var e = arr[i];
       if (scope === "day" && todayKey(new Date(e.t)) !== today) continue;
       if (scope === "week" && e.t < weekCutoff) continue;
-      if (e.v > best) best = e.v;
+      if (e.v > value) better++;
     }
-    return best;
+    return better + 1;
   }
 
   /**
@@ -72291,7 +72297,7 @@ window.Store = (function () {
     setRating: setRating,
     setRecord: setRecord,
     pushScore: pushScore,
-    bestScore: bestScore,
+    rankScore: rankScore,
     weakestThemes: weakestThemes,
     setSetting: setSetting,
     setLastRun: setLastRun,
@@ -73772,7 +73778,8 @@ window.Modes = (function () {
     var exclude = exclusions();
     var base = Math.max(600, Math.min(1000, window.Store.state.rating - 450));
     var step = opts.step || 34;
-    var state = { solved: 0, missed: 0, best: 0, lives: opts.lives, streak: 0, bestStreak: 0 };
+    var state = { solved: 0, missed: 0, best: 0, lives: opts.lives, streak: 0, bestStreak: 0,
+                  hardest: 0, timeSpent: 0, startedAt: 0 };
     var played = [];   // todos los puzzles de la partida, para poder repasarla
 
     return {
@@ -73791,12 +73798,18 @@ window.Modes = (function () {
         var target = Math.min(2900, Math.round(base + state.solved * step));
         var puzzle = window.Data.pick({ rating: target, span: 70, exclude: exclude });
         if (puzzle) exclude[puzzle.index] = 1;
+        state.startedAt = Date.now();
         return puzzle;
       },
 
       result: function (res) {
         played.push({ i: res.puzzle.index, ok: !!res.clean });
+        if (state.startedAt) {
+          state.timeSpent += Date.now() - state.startedAt;
+          state.startedAt = 0;
+        }
         if (res.clean) {
+          if (res.puzzle.rating > state.hardest) state.hardest = res.puzzle.rating;
           state.solved++;
           state.streak++;
           if (state.streak > state.bestStreak) state.bestStreak = state.streak;
@@ -73833,8 +73846,13 @@ window.Modes = (function () {
           bestStreak: state.bestStreak,
           record: isRecord,
           best: window.Store.state.records[key],
-          bestWeek: window.Store.bestScore(key, "week"),
-          bestToday: window.Store.bestScore(key, "day"),
+          rank: {
+            day: window.Store.rankScore(key, state.solved, "day"),
+            week: window.Store.rankScore(key, state.solved, "week"),
+            all: window.Store.rankScore(key, state.solved)
+          },
+          hardest: state.hardest,
+          avgSeconds: played.length ? Math.round(state.timeSpent / played.length / 1000) : 0,
           topRating: Math.min(2900, Math.round(base + state.solved * step)),
           review: played.length
         };
@@ -74300,12 +74318,20 @@ window.Play = (function () {
     window.Store.save();
 
     var rows = [];
-    if (summary.score !== undefined) rows.push(["Resueltos", summary.score]);
-    if (summary.bestStreak) rows.push(["Mejor racha", summary.bestStreak]);
-    if (summary.topRating) rows.push(["Dificultad alcanzada", summary.topRating]);
+    if (summary.bestStreak) rows.push(["Racha más larga", summary.bestStreak]);
+    if (summary.hardest) rows.push(["Problema más difícil resuelto", summary.hardest]);
+    if (summary.avgSeconds) rows.push(["Tiempo medio por problema", formatTime(summary.avgSeconds)]);
     if (summary.best !== undefined) rows.push(["Tu récord", summary.best]);
-    if (summary.bestWeek !== undefined) rows.push(["Mejor de la semana", summary.bestWeek]);
-    if (summary.bestToday !== undefined) rows.push(["Mejor del día", summary.bestToday]);
+
+    // Puesto de esta partida entre las tuyas (no hay servidor: el ranking
+    // es contra ti mismo)
+    var rank = summary.rank;
+    var rankHtml = rank
+      ? '<div class="rank-strip">' + [["Hoy", rank.day], ["Esta semana", rank.week],
+          ["Todo el tiempo", rank.all]].map(function (r) {
+            return "<div><span>" + r[0] + "</span><b>#" + r[1] + "</b></div>";
+          }).join("") + "</div>"
+      : "";
 
     els.gameover.hidden = false;
     els.gameover.innerHTML =
@@ -74313,6 +74339,7 @@ window.Play = (function () {
         (summary.record ? '<div class="record-badge">¡Récord nuevo!</div>' : "") +
         "<h2>" + (headline || "Fin de la partida") + "</h2>" +
         (summary.score !== undefined ? '<div class="big-score">' + summary.score + "</div>" : "") +
+        rankHtml +
         '<dl class="summary">' + rows.map(function (r) {
           return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
         }).join("") + "</dl>" +
@@ -75115,7 +75142,7 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * el hash es el commit que hay que reflejarse aquí en un commit aparte.
  */
 window.APP_VERSION = "1.0.0";
-window.APP_COMMIT = "5980c4d";
+window.APP_COMMIT = "0e0f151";
 
 </script>
 </body>

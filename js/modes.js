@@ -265,7 +265,8 @@ window.Modes = (function () {
     var exclude = exclusions();
     var base = Math.max(600, Math.min(1000, window.Store.state.rating - 450));
     var step = opts.step || 34;
-    var state = { solved: 0, missed: 0, best: 0, lives: opts.lives, streak: 0, bestStreak: 0 };
+    var state = { solved: 0, missed: 0, best: 0, lives: opts.lives, streak: 0, bestStreak: 0,
+                  hardest: 0, timeSpent: 0, startedAt: 0 };
     var played = [];   // todos los puzzles de la partida, para poder repasarla
 
     return {
@@ -284,12 +285,18 @@ window.Modes = (function () {
         var target = Math.min(2900, Math.round(base + state.solved * step));
         var puzzle = window.Data.pick({ rating: target, span: 70, exclude: exclude });
         if (puzzle) exclude[puzzle.index] = 1;
+        state.startedAt = Date.now();
         return puzzle;
       },
 
       result: function (res) {
         played.push({ i: res.puzzle.index, ok: !!res.clean });
+        if (state.startedAt) {
+          state.timeSpent += Date.now() - state.startedAt;
+          state.startedAt = 0;
+        }
         if (res.clean) {
+          if (res.puzzle.rating > state.hardest) state.hardest = res.puzzle.rating;
           state.solved++;
           state.streak++;
           if (state.streak > state.bestStreak) state.bestStreak = state.streak;
@@ -326,8 +333,13 @@ window.Modes = (function () {
           bestStreak: state.bestStreak,
           record: isRecord,
           best: window.Store.state.records[key],
-          bestWeek: window.Store.bestScore(key, "week"),
-          bestToday: window.Store.bestScore(key, "day"),
+          rank: {
+            day: window.Store.rankScore(key, state.solved, "day"),
+            week: window.Store.rankScore(key, state.solved, "week"),
+            all: window.Store.rankScore(key, state.solved)
+          },
+          hardest: state.hardest,
+          avgSeconds: played.length ? Math.round(state.timeSpent / played.length / 1000) : 0,
           topRating: Math.min(2900, Math.round(base + state.solved * step)),
           review: played.length
         };

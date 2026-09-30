@@ -227,8 +227,13 @@ window.Play = (function () {
 
     // vacío mientras no hay jugadas: son 400 ms y un texto ahí solo parpadea
     els.moves.innerHTML = html;
-    els.back.disabled = viewAt <= 0;
-    els.fwd.disabled = viewAt >= line.length - 1;
+    // Sin el atributo `disabled`: iOS trata los toques rápidos sobre un botón
+    // desactivado como un doble toque sobre contenido "muerto" e intenta
+    // ampliar, y como el zoom está bloqueado el tablero da un tirón arriba y
+    // abajo. Así el botón sigue recibiendo el toque (goTo ya no hace nada
+    // en los extremos).
+    setOff(els.back, viewAt <= 0);
+    setOff(els.fwd, viewAt >= line.length - 1);
     // mientras se mira atrás, la flecha de volver se destaca
     els.movebar.classList.toggle("browsing", viewAt < line.length - 1);
 
@@ -238,6 +243,11 @@ window.Play = (function () {
       els.moves.scrollLeft =
         actual.offsetLeft - els.moves.clientWidth / 2 + actual.offsetWidth / 2;
     }
+  }
+
+  function setOff(btn, off) {
+    btn.classList.toggle("off", off);
+    btn.setAttribute("aria-disabled", off ? "true" : "false");
   }
 
   // --- marcador y controles ---------------------------------------------

@@ -705,8 +705,9 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   cursor: pointer;
   transition: background .15s, color .15s, transform .1s;
 }
-.nav-btn:active:not(:disabled) { transform: scale(.92); }
-.nav-btn:disabled { opacity: .28; cursor: default; }
+.nav-btn { touch-action: manipulation; }
+.nav-btn:active:not(.off) { transform: scale(.92); }
+.nav-btn.off { opacity: .28; cursor: default; }
 
 /* Si te has ido hacia atrás, la flecha de volver se pinta de color: es el
    camino de vuelta a la posición donde puedes jugar. */

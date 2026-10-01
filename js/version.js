@@ -1,7 +1,6 @@
 /**
- * Versión mostrada en Ajustes. Se actualiza a mano tras cada commit (igual
- * que CACHE_VERSION en sw.js): X.X.X sube cuando hay cambios notables,
- * el hash es el commit que hay que reflejarse aquí en un commit aparte.
+ * Versión mostrada en Ajustes. La rellena tools/publicar.sh: sube el último
+ * número en cada publicación y apunta el commit (en un commit aparte).
  */
-window.APP_VERSION = "1.0.0";
+window.APP_VERSION = "1.0.1";
 window.APP_COMMIT = "7fa42ba";

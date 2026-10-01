@@ -11,7 +11,7 @@ const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./css/styles.css?v=16db13c4",
+  "./css/styles.css?v=6be92496",
   "./vendor/chess.js",
   "./data/puzzles.js",
   "./data/openings.js",

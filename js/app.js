@@ -43,16 +43,15 @@ window.App = (function () {
   // --- inicio ------------------------------------------------------------
 
   function home() {
+    if (window.Store.settings.section === "aperturas") { openingsHome(); return; }
+
     var st = window.Store.state;
     var today = window.Store.solvedToday();
     var streak = window.Store.streak();
     var records = st.records;
 
     screen("screen-home",
-      '<header class="home-head">' +
-        "<h1>Táctica</h1>" +
-        '<button class="icon-btn" data-nav="#/ajustes" aria-label="Ajustes">⚙</button>' +
-      "</header>" +
+      homeHead("tactica") +
 
       '<section class="rating-card" data-nav="#/progreso">' +
         '<div class="rating-main">' +
@@ -86,6 +85,169 @@ window.App = (function () {
       '<button class="link-row" data-nav="#/progreso">Ver mi progreso<span>›</span></button>'
     );
     wireNav();
+    wireSection();
+  }
+
+  /** Cabecera de inicio: el título es un desplegable para cambiar de sección. */
+  function homeHead(section) {
+    var options = [["tactica", "Táctica"], ["aperturas", "Aperturas"]];
+    var title = section === "aperturas" ? "Aperturas" : "Táctica";
+    return '<header class="home-head">' +
+      '<label class="section-switch"><h1>' + title + ' <span aria-hidden="true">▾</span></h1>' +
+        '<select id="section-select" aria-label="Sección">' + options.map(function (o) {
+          return '<option value="' + o[0] + '"' + (o[0] === section ? " selected" : "") + ">" +
+            o[1] + "</option>";
+        }).join("") + "</select></label>" +
+      '<button class="icon-btn" data-nav="#/ajustes" aria-label="Ajustes">⚙</button>' +
+    "</header>";
+  }
+
+  function wireSection() {
+    root.querySelector("#section-select").addEventListener("change", function (e) {
+      window.Store.setSetting("section", e.target.value);
+      home();
+    });
+  }
+
+  // --- aperturas ---------------------------------------------------------
+
+  var COLOR_NAME = { w: "Blancas", b: "Negras" };
+
+  function openingsHome() {
+    var O = window.Openings;
+    var ops = O.selected();
+    var html = homeHead("aperturas");
+
+    if (!ops.length) {
+      html += '<p class="lead">Elige un repertorio pequeño: 2 o 3 aperturas con blancas y ' +
+        "una respuesta con negras contra 1.e4 y otra contra 1.d4. Las aprenderás poco a poco " +
+        "y la app te las irá recordando justo cuando estés a punto de olvidarlas.</p>" +
+        '<button class="btn primary wide" data-nav="#/aperturas/catalogo">Elegir aperturas</button>';
+      screen("screen-home", html);
+      wireNav();
+      wireSection();
+      return;
+    }
+
+    var due = O.dueItems().length;
+    var next = O.nextToLearn();
+    var today = O.learnedToday();
+
+    html += '<div class="mode-grid">' +
+      (due
+        ? modeCard("#/aperturas/repaso", "Repasar",
+            due + (due === 1 ? " línea toca hoy" : " líneas tocan hoy") + ", todas mezcladas.",
+            "review", "")
+        : lockedCard("review", "Repasar", "Nada pendiente hoy.")) +
+      (next
+        ? modeCard("#/aperturas/aprender", "Aprender",
+            next.opening.name + " · " + next.line.name, "learn",
+            today >= O.NEW_PER_DAY ? "Ya llevas " + today + " hoy" : "")
+        : lockedCard("learn", "Aprender", "Ya has aprendido todas las líneas.")) +
+      "</div>";
+
+    var gaps = O.gaps();
+    if (gaps.length) {
+      html += '<p class="gap-note">' + gaps.map(esc).join(" ") + "</p>";
+    }
+
+    html += '<h2 class="section-title">Tu repertorio</h2><div class="opening-list">' +
+      ops.map(function (op) {
+        var p = O.progress(op);
+        return '<button class="opening-row" data-nav="#/aperturas/' + op.id + '">' +
+          '<span class="opening-name"><b>' + esc(op.name) + "</b><small>" +
+            COLOR_NAME[op.color] + "</small></span>" +
+          '<span class="bar-track"><span class="bar-fill" style="width:' +
+            Math.round(p.learned / p.total * 100) + '%"></span></span>' +
+          '<small class="opening-count">' + p.learned + "/" + p.total + " aprendidas" +
+            (p.solid ? " · " + p.solid + " dominadas" : "") + "</small>" +
+        "</button>";
+      }).join("") + "</div>" +
+      '<button class="link-row" data-nav="#/aperturas/catalogo">Cambiar aperturas<span>›</span></button>';
+
+    screen("screen-home", html);
+    wireNav();
+    wireSection();
+  }
+
+  function lockedCard(kind, title, desc) {
+    return '<div class="mode-card mode-' + kind + ' locked" aria-disabled="true">' +
+      '<span class="mode-icon" aria-hidden="true">' + modeIcon(kind) + "</span>" +
+      '<span class="mode-text"><b>' + esc(title) + "</b><small>" + esc(desc) + "</small></span></div>";
+  }
+
+  function openingsCatalog() {
+    var O = window.Openings;
+    var groups = [
+      ["Con blancas", function (o) { return o.color === "w"; }],
+      ["Con negras, contra 1.e4", function (o) { return o.color === "b" && o.against === "e4"; }],
+      ["Con negras, contra 1.d4", function (o) { return o.color === "b" && o.against === "d4"; }]
+    ];
+    var html = backHeader("Elegir aperturas") +
+      '<p class="lead">Marca las que quieras trabajar. Con 2 o 3 por color es suficiente: ' +
+      "mejor pocas y bien sabidas. Puedes cambiarlas cuando quieras sin perder lo aprendido.</p>";
+
+    groups.forEach(function (g) {
+      html += '<h2 class="section-title">' + g[0] + "</h2><div class=\"mode-grid\">" +
+        O.all().filter(g[1]).map(function (op) {
+          var on = O.isSelected(op.id);
+          return '<button class="opening-pick' + (on ? " on" : "") + '" data-pick="' + op.id + '" ' +
+            'role="checkbox" aria-checked="' + on + '">' +
+            '<span class="pick-box" aria-hidden="true"></span>' +
+            '<span class="mode-text"><b>' + esc(op.name) + "</b>" +
+              '<small class="pick-style">' + esc(op.style) + " · " + op.lines.length + " líneas</small>" +
+              "<small>" + esc(op.summary) + "</small></span>" +
+          "</button>";
+        }).join("") + "</div>";
+    });
+    html += '<button class="btn primary wide catalog-done" data-nav="#/">Listo</button>';
+
+    screen("screen-list", html);
+    wireNav();
+    on("[data-pick]", function (e) {
+      window.Openings.toggle(e.currentTarget.getAttribute("data-pick"));
+      var on = window.Openings.isSelected(e.currentTarget.getAttribute("data-pick"));
+      e.currentTarget.classList.toggle("on", on);
+      e.currentTarget.setAttribute("aria-checked", String(on));
+    });
+  }
+
+  function openingDetail(id) {
+    var O = window.Openings;
+    var op = O.byId(id);
+    if (!op) { go("#/"); return; }
+
+    var html = backHeader(op.name) +
+      '<p class="lead">' + esc(op.summary) + "</p>" +
+      '<h2 class="section-title">Líneas</h2><div class="mode-grid">' +
+      op.lines.map(function (line) {
+        return '<button class="line-row" data-nav="#/aperturas/linea/' + line.id + '">' +
+          '<span class="mode-text"><b>' + esc(line.name) + "</b>" +
+            "<small>" + esc(line.idea) + "</small>" +
+            '<small class="line-moves">' + esc(sanLine(line.moves)) + "</small></span>" +
+          '<span class="line-status">' + esc(statusText(O.status(line.id))) + "</span>" +
+        "</button>";
+      }).join("") + "</div>" +
+      (O.isSelected(op.id) ? "" :
+        '<p class="gap-note">Esta apertura no está en tu repertorio: puedes estudiar sus líneas, ' +
+        "pero no saldrán en los repasos.</p>");
+
+    screen("screen-list", html);
+    wireNav();
+  }
+
+  /** "1.e4 e5 2.Nf3 Nc6" a partir de la lista de jugadas. */
+  function sanLine(moves) {
+    return moves.map(function (m, i) {
+      return i % 2 === 0 ? (i / 2 + 1) + "." + m : m;
+    }).join(" ");
+  }
+
+  function statusText(st) {
+    if (st.kind === "new") return "Nueva";
+    if (st.kind === "due") return "Toca hoy";
+    var days = Math.round((new Date(st.due + "T12:00") - new Date(window.Store.todayKey() + "T12:00")) / 864e5);
+    return days === 1 ? "Mañana" : "En " + days + " días";
   }
 
   function modeCard(hash, title, desc, kind, badge) {
@@ -97,7 +259,7 @@ window.App = (function () {
   }
 
   function modeIcon(kind) {
-    return { survival: "♞", rated: "♛", themes: "♜", rush: "♝" }[kind] || "♟";
+    return { survival: "♞", rated: "♛", themes: "♜", rush: "♝", review: "↻", learn: "♙" }[kind] || "♟";
   }
 
   /** Mini gráfica de la evolución del rating. */
@@ -680,6 +842,11 @@ window.App = (function () {
         return parts[1] ? window.Modes.rush(parseInt(parts[1], 10)) : null;
       case "tema":
         return parts[2] ? window.Modes.theme(parts[1], parts[2]) : null;
+      case "aperturas":
+        if (parts[1] === "repaso") return window.Openings.review();
+        if (parts[1] === "aprender") return window.Openings.learn();
+        if (parts[1] === "linea" && parts[2]) return window.Openings.learn(parts[2]);
+        return null;
       case "revision":
         // parts[2] es el filtro con el que se entró desde la lista
         return parts[1] ? window.Modes.review(parseInt(parts[1], 10), parts[2]) : null;
@@ -697,6 +864,11 @@ window.App = (function () {
 
     var parts = hash.replace(/^#\/?/, "").split("/");
     switch (parts[0]) {
+      case "aperturas":
+        if (parts[1] === "catalogo") openingsCatalog();
+        else if (parts[1]) openingDetail(parts[1]);
+        else home();
+        break;
       case "temas": themes(); break;
       case "tema": themeDetail(parts[1]); break;
       case "contrarreloj": rushMenu(); break;

@@ -156,14 +156,17 @@ window.PuzzlePlayer = (function () {
                 checkSq: checkSquare(), mate: false }];
       viewAt = 0;
 
-      // el jugador es el bando que NO mueve en el FEN original
-      var playerColor = game.turn() === "w" ? "b" : "w";
+      // el jugador es el bando que NO mueve en el FEN original; con
+      // `playerFirst` (una apertura con blancas) empieza moviendo él
+      var playerColor = next.playerFirst ? game.turn() : (game.turn() === "w" ? "b" : "w");
       board.setOrientation(playerColor);
       lockBoard();
       board.setPosition(game.fen(), { lastMove: null, check: null });
 
       if (handlers.onLoad) handlers.onLoad(puzzle, playerColor);
       if (handlers.onLine) handlers.onLine(line, viewAt);
+
+      if (next.playerFirst) { handOverToPlayer(); return; }
 
       // la jugada que plantea el problema, con un respiro para verla llegar
       later(function () {

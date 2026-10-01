@@ -23,6 +23,8 @@
 <script src="js/data.js"></script>
 <script src="js/puzzle.js"></script>
 <script src="js/modes.js"></script>
+<script src="data/openings.js"></script>
+<script src="js/openings.js"></script>
 
 <script>
 /**
@@ -122,6 +124,53 @@
       // 2 aciertos, detrás de las de 12 y 8 de hoy
       assert("Fin de partida: la partida recién jugada entra en el ranking",
         s.rank.day === 3, "obtenido=" + s.rank.day);
+    } finally {
+      window.Store.importJson(saved);
+    }
+  })();
+
+  // --- Aperturas: repaso espaciado ----------------------------------------
+  (function () {
+    var saved = window.Store.exportJson();
+    try {
+      window.Store.reset();
+      var O = window.Openings;
+      var ital = O.byId("italiana");
+
+      assert("Aperturas: sin repertorio no hay nada que aprender", O.nextToLearn() === null);
+      O.toggle("italiana");
+      O.toggle("caro-kann");
+      assert("Aperturas: se aprende en orden, primero la principal",
+        O.nextToLearn().line.id === ital.lines[0].id);
+
+      O.markLearned(ital.lines[0].id);
+      assert("Aperturas: lo recién aprendido se repasa hoy mismo",
+        O.dueItems().length === 1 && O.status(ital.lines[0].id).kind === "due");
+      assert("Aperturas: no se pasa a otra apertura hasta terminar la actual",
+        O.nextToLearn().opening.id === "italiana");
+
+      O.grade(ital.lines[0].id, true);
+      var c = window.Store.state.openings.cards[ital.lines[0].id];
+      assert("Aperturas: acertar sube de caja y aplaza el repaso",
+        c.box === 1 && O.status(ital.lines[0].id).kind === "later", JSON.stringify(c));
+      O.grade(ital.lines[0].id, false);
+      assert("Aperturas: fallar devuelve a la caja 0",
+        window.Store.state.openings.cards[ital.lines[0].id].box === 0);
+
+      assert("Aperturas: avisa de que falta respuesta a 1.d4",
+        O.gaps().join(" ").indexOf("1.d4") >= 0, O.gaps().join(" "));
+
+      // cada línea de cada apertura se convierte en jugadas legales
+      var bad = [];
+      O.all().forEach(function (op) {
+        op.lines.forEach(function (line) {
+          var mode = O.learn(line.id);
+          var p = mode.next();
+          if (!p || p.moves.length !== line.moves.length) bad.push(line.id);
+          if (p && p.playerFirst !== (op.color === "w")) bad.push(line.id + " (color)");
+        });
+      });
+      assert("Aperturas: todas las líneas se cargan como jugadas", !bad.length, bad.join(", "));
     } finally {
       window.Store.importJson(saved);
     }

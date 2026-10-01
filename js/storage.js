@@ -25,7 +25,15 @@ window.Store = (function () {
       sound: true, coords: true, autoNext: true, animations: true,
       theme: "auto",        // auto | light | dark
       board: "verde",
-      pieces: "cburnett"
+      pieces: "cburnett",
+      section: "tactica"    // tactica | aperturas
+    },
+    // aperturas: las elegidas y, por cada línea ya aprendida, su caja del
+    // repaso espaciado y la fecha en que vuelve a tocar
+    openings: {
+      selected: [],
+      cards: {},             // id de línea -> { box: 0.., due: "AAAA-MM-DD" }
+      learnedOn: {}          // día -> líneas nuevas aprendidas ese día
     },
     lastPlayed: null,
     // última partida de supervivencia o contrarreloj, para poder repasarla:

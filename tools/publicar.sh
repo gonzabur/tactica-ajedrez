@@ -38,7 +38,7 @@ sed -i '' "s|window.APP_COMMIT = \".*\";|window.APP_COMMIT = \"$COMMIT\";|" js/v
 
 # La versión de caché se deriva del contenido final de la app (ya con el
 # commit relleno): solo cambia cuando algo ha cambiado de verdad.
-HUELLA=$(cat index.html css/styles.css js/*.js data/puzzles.js \
+HUELLA=$(cat index.html css/styles.css js/*.js data/puzzles.js data/openings.js \
               vendor/chess.js manifest.webmanifest | shasum | cut -c1-8)
 sed -i '' "s|^const CACHE_VERSION = .*|const CACHE_VERSION = \"tactica-$HUELLA\";|" sw.js
 echo "· Versión de caché: tactica-$HUELLA"

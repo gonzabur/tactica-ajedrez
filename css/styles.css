@@ -328,6 +328,83 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 }
 .link-row span { color: var(--text-faint); font-size: 18px; }
 
+/* --- inicio: selector de sección (Táctica / Aperturas) --------------------
+   Un <select> nativo invisible encima del título: en el iPhone abre el
+   selector del sistema, sin menú propio que mantener. */
+.section-switch { position: relative; flex: 1; min-width: 0; }
+.section-switch h1 span { font-size: .55em; color: var(--text-faint); vertical-align: middle; }
+.section-switch select {
+  position: absolute; inset: 0;
+  width: 100%; opacity: 0;
+  font-size: 16px;              /* menos de 16px y iOS amplía la página al tocar */
+  cursor: pointer;
+}
+
+/* --- aperturas -------------------------------------------------------------- */
+
+.mode-review .mode-icon { color: var(--accent-strong); }
+.mode-learn .mode-icon { color: var(--icon-blue); }
+
+.gap-note {
+  font-size: 12.5px; line-height: 1.45;
+  color: var(--gold);
+  background: rgba(var(--gold-rgb), .1);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: 14px 0 0;
+}
+
+.opening-list { display: flex; flex-direction: column; gap: 8px; }
+.opening-row {
+  display: grid; grid-template-columns: 1fr 34%;
+  grid-template-areas: "name bar" "name count";
+  align-items: center; gap: 4px 12px;
+  width: 100%; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: left; cursor: pointer;
+}
+.opening-name { grid-area: name; }
+.opening-name b { display: block; font-size: 15px; font-weight: 620; }
+.opening-name small { color: var(--text-faint); font-size: 12px; }
+.opening-row .bar-track { grid-area: bar; }
+.opening-count { grid-area: count; font-size: 11px; color: var(--text-faint); text-align: right; }
+
+.opening-pick, .line-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  width: 100%; padding: 14px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left; cursor: pointer;
+}
+.opening-pick small, .line-row small { line-height: 1.4; }
+.opening-pick .mode-text small + small { margin-top: 6px; }
+.pick-style { color: var(--text-faint) !important; }
+.pick-box {
+  flex: 0 0 22px; height: 22px; margin-top: 1px;
+  border: 2px solid var(--line); border-radius: 7px;
+}
+.opening-pick.on { border-color: var(--accent); }
+.opening-pick.on .pick-box {
+  background: var(--accent); border-color: var(--accent);
+  box-shadow: inset 0 0 0 3px var(--surface);
+}
+.catalog-done { margin-top: 22px; }
+
+.line-moves {
+  color: var(--text-faint) !important;
+  font-variant-numeric: tabular-nums;
+  margin-top: 6px !important;
+}
+.line-status {
+  flex: none;
+  font-size: 11px; font-weight: 600;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  padding: 4px 8px; border-radius: 20px;
+  white-space: nowrap;
+}
+
 /* --- listas (temas, niveles, ajustes) ------------------------------------ */
 
 .lead {
@@ -781,6 +858,17 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   text-align: center;
   margin-bottom: 4px;
 }
+
+/* Aprender aperturas: el hueco de las etiquetas pasa a ser el de las
+   explicaciones. Altura fija (y desplazable si no cabe) para que el tablero
+   no se mueva al cambiar de nota. */
+.with-notes .puzzle-info {
+  height: 74px;
+  overflow-y: auto;
+  text-align: left;
+  font-size: 13px; line-height: 1.45;
+  color: var(--text-dim);
+}
 .chips {
   display: flex; gap: 6px;
   justify-content: center;
@@ -951,6 +1039,8 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .mark.last.on-dark  { background: var(--hl-last-dark); }
 .mark.selected.on-light { background: var(--hl-sel-light); }
 .mark.selected.on-dark  { background: var(--hl-sel-dark); }
+/* Aprender aperturas: la jugada que toca, marcada de forma fija */
+.mark.guide { box-shadow: inset 0 0 0 4px #6ba8e8; border-radius: 4px; }
 
 .mark.dest::after {
   content: ""; position: absolute; inset: 34%;

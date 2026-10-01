@@ -27,6 +27,15 @@ if git diff --cached --quiet; then
   echo "No hay nada que publicar."
   exit 0
 fi
+
+# Cada publicación sube el último número (1.0.3 -> 1.0.4). Para un salto
+# mayor (1.1.0, 2.0.0) se edita js/version.js a mano antes de publicar.
+VERSION=$(sed -n 's/^window\.APP_VERSION = "\(.*\)";/\1/p' js/version.js)
+VERSION=$(echo "$VERSION" | awk -F. '{print $1"."$2"."$3+1}')
+sed -i '' "s|window.APP_VERSION = \".*\";|window.APP_VERSION = \"$VERSION\";|" js/version.js
+echo "· Versión: $VERSION"
+
+git add js/version.js
 git commit -q -m "${1:-Actualiza Táctica}"
 
 # El commit mostrado en Ajustes es el que se acaba de crear, así que hace

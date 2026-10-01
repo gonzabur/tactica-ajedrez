@@ -44,7 +44,7 @@ window.Play = (function () {
     mode = selected;
     over = false;
     root = container;
-    root.className = "screen screen-play";
+    root.className = "screen screen-play" + (mode.notes ? " with-notes" : "");
     root.innerHTML = TEMPLATE;
 
     els = {
@@ -89,7 +89,8 @@ window.Play = (function () {
       onRevealed: onRevealed,
       onFailed: onRevealed,
       onLine: renderMoves,
-      onProgress: function () { setStatus("¡Bien! Sigue.", "good"); }
+      onTurn: onTurn,
+      onProgress: function () { if (!mode.guided) setStatus("¡Bien! Sigue.", "good"); }
     });
 
     els.back.addEventListener("click", function () { player.back(); });
@@ -128,17 +129,28 @@ window.Play = (function () {
     var puzzle = mode.next();
     if (!puzzle) {
       if (mode.onExhausted) { mode.onExhausted(); return; }
-      finish({ reason: "sin-puzzles" });
+      var summary = mode.finish ? mode.finish() : { reason: "sin-puzzles" };
+      finish(summary, summary.headline);
       return;
     }
     player.load(puzzle);
   }
 
   function onPuzzleLoad(puzzle, color) {
-    setStatus(color === "w" ? "Juegan las blancas" : "Juegan las negras", "turn " + color);
+    setStatus(mode.loadText ? mode.loadText(puzzle, color)
+      : (color === "w" ? "Juegan las blancas" : "Juegan las negras"), "turn " + color);
     renderActions("playing");
     if (mode.puzzleSeconds) startPuzzleClock(mode.puzzleSeconds);
     renderHud();
+  }
+
+  /** Aprender: marca en el tablero la jugada que toca y la dice. */
+  function onTurn(ply) {
+    if (!mode.guided) return;
+    var uci = player.puzzle.moves[ply];
+    board.setGuide([uci.slice(0, 2), uci.slice(2, 4)]);
+    setStatus("Te toca: " + player.puzzle.line.moves[ply],
+      "turn " + (player.puzzle.playerFirst ? "w" : "b"));
   }
 
   function onMovePlayed(move, game) {
@@ -168,7 +180,9 @@ window.Play = (function () {
 
     if (outcome.over) { finish(mode.finish ? mode.finish() : {}); return; }
 
-    if (res.clean) {
+    if (outcome.text) {
+      setStatus(outcome.text, res.clean ? "good" : "meh");
+    } else if (res.clean) {
       setStatus(deltaText(res.mate ? "¡Jaque mate!" : "¡Resuelto!", outcome.delta), "good");
     } else {
       setStatus(deltaText(res.mate
@@ -227,6 +241,8 @@ window.Play = (function () {
 
     // vacío mientras no hay jugadas: son 400 ms y un texto ahí solo parpadea
     els.moves.innerHTML = html;
+    if (mode.noteAt) els.info.textContent = mode.noteAt(player.puzzle, viewAt - 1);
+    if (mode.guided) board.setGuide(null);
     // Sin el atributo `disabled`: iOS trata los toques rápidos sobre un botón
     // desactivado como un doble toque sobre contenido "muerto" e intenta
     // ampliar, y como el zoom está bloqueado el tablero da un tirón arriba y
@@ -278,7 +294,9 @@ window.Play = (function () {
   function renderActions(phase, puzzle) {
     var html = "";
     if (phase === "playing") {
-      if (mode.allowHint) {
+      if (mode.guided) {
+        // aprendiendo: la jugada ya está marcada en el tablero
+      } else if (mode.allowHint) {
         html += '<button class="btn ghost" data-act="hint">Pista</button>';
         html += '<button class="btn ghost" data-act="solution">Ver solución</button>';
       } else {
@@ -289,7 +307,8 @@ window.Play = (function () {
     }
     els.actions.innerHTML = html;
 
-    if (phase === "solved" && puzzle) renderPuzzleInfo(puzzle);
+    if (mode.notes) { /* la caja es de las notas */ }
+    else if (phase === "solved" && puzzle) renderPuzzleInfo(puzzle);
     else els.info.innerHTML = "";
 
     els.actions.querySelectorAll("[data-act]").forEach(function (btn) {
@@ -375,7 +394,7 @@ window.Play = (function () {
     }
     window.Store.save();
 
-    var rows = [];
+    var rows = (summary.rows || []).slice();
     if (summary.bestStreak) rows.push(["Racha más larga", summary.bestStreak]);
     if (summary.hardest) rows.push(["Problema más difícil resuelto", summary.hardest]);
     if (summary.avgSeconds) rows.push(["Tiempo medio por problema", formatTime(summary.avgSeconds)]);

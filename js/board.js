@@ -68,6 +68,7 @@ window.Board = (function () {
       lastMove: null,      // [origen, destino]
       check: null,         // casilla del rey en jaque
       mate: false,         // ...y si además es mate, que se vea distinto
+      guide: null,         // [origen, destino] de la jugada que hay que hacer (aprender)
       interactive: false,
       coords: options.coords !== false,
       pieceSet: options.pieces || "cburnett"
@@ -198,6 +199,10 @@ window.Board = (function () {
         mark(state.lastMove[1], "last");
       }
       if (state.check) mark(state.check, state.mate ? "mate" : "check");
+      if (state.guide) {
+        mark(state.guide[0], "guide");
+        mark(state.guide[1], "guide");
+      }
       if (state.selected) mark(state.selected, "selected");
 
       if (state.selected && state.interactive) {
@@ -502,6 +507,12 @@ window.Board = (function () {
         if (!window.PIECE_SETS[id]) return;
         state.pieceSet = id;
         renderPieces();
+      },
+
+      /** Marca fija de la jugada que toca hacer (null para quitarla). */
+      setGuide: function (move) {
+        state.guide = move || null;
+        renderMarks();
       },
 
       /** Insignia de acierto/fallo/pista sobre una casilla, ajena a renderMarks(). */

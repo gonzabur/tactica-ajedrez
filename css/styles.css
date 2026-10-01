@@ -114,8 +114,13 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* En todos los elementos y no solo en body: en iOS, touch-action no atraviesa
+   un contenedor con scroll (#app, la lista de jugadas, las etiquetas...), así
+   que dentro de ellos el doble toque volvía a intentar ampliar y, con el zoom
+   bloqueado, la pantalla daba un tirón. El tablero mantiene su "none". */
+* { touch-action: manipulation; }
+
 body {
-  touch-action: manipulation;          /* quita el retardo de 300 ms al tocar */
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -782,7 +787,6 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   cursor: pointer;
   transition: background .15s, color .15s, transform .1s;
 }
-.nav-btn { touch-action: manipulation; }
 .nav-btn:active:not(.off) { transform: scale(.92); }
 .nav-btn.off { opacity: .28; cursor: default; }
 
@@ -978,6 +982,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   overflow: hidden;
   touch-action: none;              /* el arrastre no debe desplazar la página */
 }
+.board * { touch-action: none; }  /* las piezas y casillas, igual que el tablero */
 
 .board-squares, .board-marks, .board-pieces, .board-flash, .board-promo {
   position: absolute; inset: 0;

@@ -323,6 +323,13 @@ window.Play = (function () {
 
   /** Al resolver, se muestran los motivos del puzzle: es donde se aprende. */
   function renderPuzzleInfo(puzzle) {
+    if (puzzle.line) {
+      // aperturas: el nombre de la variante recién jugada, para asociarlo
+      els.info.innerHTML =
+        '<div class="chips"><span class="chip">' + puzzle.line.name + "</span></div>" +
+        '<p class="theme-desc">' + puzzle.opening.name + "</p>";
+      return;
+    }
     var interesting = window.THEMES.ranked(puzzle.themes).slice(0, 3);
     if (!interesting.length) return;
 

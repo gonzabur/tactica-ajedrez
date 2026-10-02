@@ -241,6 +241,115 @@ window.OPENINGS = [
   },
 
   {
+    id: "ruy-lopez",
+    name: "Ruy López (Española)",
+    color: "w",
+    style: "Clásica y de maniobras",
+    summary:
+      "La apertura más estudiada del ajedrez. El alfil va a b5 a presionar al " +
+      "caballo que defiende e5, y esa presión dura toda la apertura mientras " +
+      "preparas c3 y d4. Tiene más líneas que la Italiana, pero los planes se " +
+      "repiten: enroque, Re1, c3, h3 y d4, y el caballo por d2 y f1 hasta g3.",
+    lines: [
+      {
+        id: "ruy-lopez-principal",
+        name: "Cerrada",
+        idea: "La línea principal: enroca, defiende e4 con Re1 y prepara d4 con c3 y h3.",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O", "Be7",
+                "Re1", "b5", "Bb3", "d6", "c3", "O-O", "h3"],
+        notes: {
+          4: "La Española: el alfil presiona al caballo que defiende e5. Todavía no gana el peón (tras Bxc6 y Nxe5 el negro lo recupera con …Qd4), pero la presión no desaparece.",
+          5: "El negro pregunta al alfil qué quiere hacer.",
+          6: "Retírate sin soltar la presión sobre el caballo.",
+          8: "No hace falta defender e4: si el negro lo toma, lo recuperas abriendo el centro con d4 (mira la línea Abierta).",
+          10: "Ahora e4 está defendido, y con eso la amenaza ya es de verdad: Bxc6 seguido de Nxe5 gana un peón.",
+          11: "Por eso el negro echa al alfil.",
+          12: "El alfil acaba en la misma diagonal que en la Italiana, apuntando a f7.",
+          14: "Prepara d4 y deja libre c2 para el alfil si el negro lo ataca con …Na5.",
+          16: "Evita …Bg4, que clavaría el caballo que sostiene d4. Lo siguiente es d4, y el caballo de b1 viaja por d2 y f1 hasta g3."
+        }
+      },
+      {
+        id: "ruy-lopez-berlinesa",
+        name: "Berlinesa (3…Nf6) con d3",
+        idea: "El negro ataca e4 de entrada. Defiéndelo con d3 y juega el mismo esquema, sin entrar en el final de la Berlinesa.",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "Nf6", "d3", "Bc5", "c3", "O-O", "O-O", "d6", "Nbd2"],
+        notes: {
+          5: "La Berlinesa: una de las defensas más sólidas que existen.",
+          6: "Defiende e4 y conserva todas las piezas. La alternativa 4.O-O Nxe4 lleva a un final sin damas muy teórico, famoso por lo difícil que es ganarlo.",
+          8: "Prepara d4 y da al alfil la retirada por a4 hasta c2.",
+          12: "El caballo empieza su viaje habitual: d2, f1 y g3. Con Re1 y h3 completas el esquema de la línea principal."
+        }
+      },
+      {
+        id: "ruy-lopez-abierta",
+        name: "Abierta (5…Nxe4)",
+        idea: "Si el negro se come el peón de e4, abre el centro con d4 y lo recuperas con ventaja de espacio.",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O", "Nxe4",
+                "d4", "b5", "Bb3", "d5", "dxe5", "Be6", "c3"],
+        notes: {
+          9: "La Abierta: el negro acepta el peón que dejaste sin defender.",
+          10: "Abre el centro mientras el rey negro sigue en e8. Re1 también recupera el peón, pero d4 da más.",
+          11: "El negro echa al alfil para poder sostener su caballo con …d5.",
+          14: "Peón recuperado. El de e5 te da espacio en el flanco de rey, y el caballo de e4, que parece fuerte, será tu objetivo.",
+          16: "Abre c2 para el alfil, que desde ahí ataca al caballo de e4, y controla d4. Luego Nbd2 para cambiarlo."
+        }
+      },
+      {
+        id: "ruy-lopez-steinitz-diferida",
+        name: "Steinitz diferida (4…d6) y el Arca de Noé",
+        idea: "Contra …a6 y …d6, prepara d4 con c3: así esquivas la trampa más famosa de la Española.",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "d6", "c3", "Bd7", "d4", "g6", "O-O"],
+        notes: {
+          7: "El negro defiende e5 con el peón. Su caballo queda clavado por tu alfil.",
+          8: "Primero c3. Si juegas d4 ya, viene el Arca de Noé: 5.d4 b5 6.Bb3 Nxd4 7.Nxd4 exd4 y, si tomas con la dama (8.Qxd4??), los peones avanzan con …c5 y …c4 y encierran al alfil de b3.",
+          9: "Deshace la clavada.",
+          10: "Ahora sí: centro de dos peones, y si el negro cambia recapturas con el peón de c3.",
+          12: "Rey a salvo y centro fuerte. Sigue con Re1 y el caballo por d2 y f1."
+        }
+      },
+      {
+        id: "ruy-lopez-steinitz",
+        name: "Steinitz (3…d6)",
+        idea: "Si el negro defiende e5 con el peón enseguida, ocupa el centro con d4 sin preparar nada.",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "d6", "d4", "Bd7", "Nc3", "exd4", "Nxd4"],
+        notes: {
+          5: "La Steinitz: sólida pero pasiva, muy frecuente entre aficionados. El caballo de c6 queda clavado.",
+          6: "Aquí no hay Arca de Noé, porque el negro no ha jugado …a6 y no tiene …b5. Así que d4 directo, amenazando ganar el peón de e5.",
+          7: "Deshace la clavada y sostiene el caballo.",
+          8: "Desarrolla y mantiene la tensión en el centro.",
+          10: "Caballo centralizado y más espacio: posición cómoda. Enroca y decide después si cambias en c6."
+        }
+      },
+      {
+        id: "ruy-lopez-clasica",
+        name: "Clásica (3…Bc5)",
+        idea: "El negro saca el alfil a c5. Prepara d4 con c3 y avanza ganando un tiempo sobre ese alfil.",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "Bc5", "c3", "Nf6", "O-O", "O-O", "d4", "Bb6", "Re1"],
+        notes: {
+          5: "Desarrollo natural, como en la Italiana, pero el alfil será un blanco para tu peón d.",
+          6: "Prepara d4.",
+          8: "Enroca antes de romper: no hay prisa.",
+          10: "Ataca el alfil y ocupa el centro. Si el negro toma (…exd4 cxd4), te quedas con dos peones centrales y e5 en la recámara.",
+          12: "Sostiene e4 para mantener el centro. Luego h3 y el caballo por d2 y f1."
+        }
+      },
+      {
+        id: "ruy-lopez-schliemann",
+        name: "Gambito Schliemann (3…f5)",
+        idea: "El negro ataca tu centro por el flanco. No aceptes el lío: d3, recaptura con el peón y enroca.",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "f5", "d3", "fxe4", "dxe4", "Nf6", "O-O"],
+        notes: {
+          5: "El Schliemann (o Jaenisch): agresivo y lleno de trampas. Se ve mucho a nivel de club.",
+          6: "La respuesta tranquila: sostiene e4 y evita las líneas afiladas de 4.Nc3.",
+          8: "Recaptura con el peón: mantienes tu peón en e4 y se abre la columna d para tu dama.",
+          10: "Rey a salvo. El rey negro queda más expuesto: su peón f ya no tapa la diagonal a2–g8. Si se come el peón (…Nxe4?), Qe2 ataca al caballo y quedas con clara ventaja."
+        }
+      }
+    ]
+  },
+
+  {
     id: "caro-kann",
     name: "Caro-Kann",
     color: "b",
@@ -396,6 +505,83 @@ window.OPENINGS = [
   },
 
   {
+    id: "escandinava",
+    name: "Escandinava",
+    color: "b",
+    against: "e4",
+    style: "Directa y con muy poca teoría",
+    summary:
+      "Con 1…d5 atacas e4 desde la primera jugada y eres tú quien elige la " +
+      "apertura: el blanco casi siempre toma, tu dama recaptura y se retira a " +
+      "a5. A cambio del tiempo que pierde la dama, montas una estructura como " +
+      "la de la Caro-Kann (…c6, …Bf5, …e6), muy fácil de jugar.",
+    lines: [
+      {
+        id: "escandinava-principal",
+        name: "Principal (3…Qa5)",
+        idea: "Dama a a5, caballo a f6, …c6 para darle retirada y el alfil fuera antes de …e6.",
+        moves: ["e4", "d5", "exd5", "Qxd5", "Nc3", "Qa5", "d4", "Nf6", "Nf3", "c6", "Bc4", "Bf5"],
+        notes: {
+          1: "La Escandinava: atacas e4 de inmediato.",
+          3: "Recuperas el peón. La dama sale pronto y el blanco va a ganar un tiempo atacándola.",
+          5: "La casilla clásica. Desde a5 la dama está segura y, en cuanto el blanco juegue d4, deja clavado al caballo de c3.",
+          7: "Desarrolla y controla d5 y e4.",
+          9: "La jugada clave: abre la retirada de la dama por c7 o d8 y controla d5.",
+          11: "El alfil sale antes de …e6, como en la Caro-Kann. Luego …e6 y …Nbd7. Si tras Bd2 el caballo blanco salta a d5 descubriendo el alfil sobre tu dama, vuelve a d8: para eso jugaste …c6."
+        }
+      },
+      {
+        id: "escandinava-tranquila",
+        name: "Si el blanco juega tranquilo (Bc4 y d3)",
+        idea: "El mismo esquema. En cuanto aparezca Bd2 apuntando a tu dama, retírala a c7.",
+        moves: ["e4", "d5", "exd5", "Qxd5", "Nc3", "Qa5", "Bc4", "Nf6", "d3", "c6", "Bd2", "Qc7"],
+        notes: {
+          8: "El blanco no ocupa el centro con d4: posición más tranquila.",
+          9: "Como siempre, la retirada para la dama.",
+          10: "El alfil apunta a tu dama a través del caballo: cualquier salto de ese caballo sería un ataque descubierto.",
+          11: "No esperes a que salte: la dama se quita de la línea. Desde c7 sigue activa. Luego …Bf5 o …Bg4, …e6 y …Nbd7."
+        }
+      },
+      {
+        id: "escandinava-3nf3",
+        name: "Si el blanco no ataca la dama (3.Nf3)",
+        idea: "Aprovecha el tiempo: alfil a g4, caballo a c6 y enroque largo para presionar d4.",
+        moves: ["e4", "d5", "exd5", "Qxd5", "Nf3", "Bg4", "Be2", "Nc6", "d4", "O-O-O"],
+        notes: {
+          4: "El blanco se guarda Nc3, a menudo para echar a la dama con c4.",
+          5: "Clava el caballo. La dama se queda en el centro mientras nadie la ataque.",
+          7: "Desarrolla apuntando a d4.",
+          9: "La torre se suma a la presión sobre d4, y luego viene …e5. Si atacan a la dama con Nc3, va a a5; si es con c4, a f5."
+        }
+      },
+      {
+        id: "escandinava-avance",
+        name: "Si el blanco avanza (2.e5)",
+        idea: "Te regala una Caro-Kann mejorada: alfil a f5, …e6 y …c5 de una sola jugada.",
+        moves: ["e4", "d5", "e5", "Bf5", "d4", "e6", "Nf3", "c5"],
+        notes: {
+          2: "El blanco no toma: cierra el centro, pero no te crea ningún problema.",
+          3: "El alfil sale antes de …e6.",
+          5: "Cadena de peones sana, con el alfil ya fuera.",
+          7: "Atacas la base del centro blanco. En la Caro-Kann este peón tarda dos jugadas en llegar a c5 (…c6 y …c5); aquí, una. Luego …Nc6 y …Qb6."
+        }
+      },
+      {
+        id: "escandinava-2nc3",
+        name: "Si el blanco defiende con 2.Nc3",
+        idea: "Avanza …d4 ganando un tiempo sobre el caballo y monta el centro con …e5.",
+        moves: ["e4", "d5", "Nc3", "d4", "Nce2", "e5", "Ng3", "Be6"],
+        notes: {
+          2: "El blanco defiende e4 con el caballo en vez de tomar.",
+          3: "Ganas espacio y echas al caballo.",
+          5: "Peones en d4 y e5: ya tienes más espacio que el blanco.",
+          7: "Controla c4 para que el alfil blanco no se instale ahí. Luego …Nc6 y …Qd7, con enroque largo."
+        }
+      }
+    ]
+  },
+
+  {
     id: "siciliana-dragon",
     name: "Siciliana Dragón",
     color: "b",
@@ -528,6 +714,83 @@ window.OPENINGS = [
         moves: ["d4", "d5", "Bf4", "Nf6", "e3", "c5", "c3", "Nc6", "Nd2", "Qb6"],
         notes: {
           2: "El sistema Londres: el alfil sale antes de e3.",
+          5: "Ataca d4 desde el principio, la mejor forma de incomodar a la Londres.",
+          7: "Más presión sobre d4.",
+          9: "La jugada molesta: con el alfil en f4, nadie defiende b2. El blanco tiene que gastar tiempo con la dama (Qb3 o Qc2)."
+        }
+      }
+    ]
+  },
+
+  {
+    id: "eslava",
+    name: "Eslava",
+    color: "b",
+    against: "d4",
+    style: "Sólida, hermana de la Caro-Kann",
+    summary:
+      "Sostienes d5 con …c6 en vez de con …e6, así que tu alfil de casillas " +
+      "blancas no queda encerrado: sale a f5 antes de cerrar con …e6. La " +
+      "estructura es la de la Caro-Kann y los planes se parecen. Lo único " +
+      "delicado es el orden: cuándo puede salir el alfil y cuándo conviene " +
+      "tomar en c4.",
+    lines: [
+      {
+        id: "eslava-principal",
+        name: "Principal (…dxc4 y …Bf5)",
+        idea: "Con los dos caballos blancos fuera, toma en c4; tras a4, alfil a f5 y …e6.",
+        moves: ["d4", "d5", "c4", "c6", "Nf3", "Nf6", "Nc3", "dxc4", "a4", "Bf5", "e3", "e6"],
+        notes: {
+          3: "La Eslava: defiendes d5 sin encerrar el alfil de c8.",
+          5: "Desarrolla. El alfil todavía no: el orden importa.",
+          7: "Con el caballo en c3, sacar ya el alfil permitiría cxd5 y Qb3 contra b7 y d5. Mejor tomar: amenazas quedarte el peón con …b5.",
+          8: "El blanco impide …b5, pero a cambio deja un agujero en b4.",
+          9: "Ahora sí. El alfil controla e4, la casilla a la que el blanco quiere avanzar.",
+          11: "Estructura completa. El blanco recupera el peón con Bxc4 y tú sigues con …Bb4 (al agujero), …Nbd7 y enroque."
+        }
+      },
+      {
+        id: "eslava-lenta",
+        name: "Eslava lenta (4.e3)",
+        idea: "Si el blanco juega e3 antes de sacar el caballo de dama, el alfil ya puede salir a f5.",
+        moves: ["d4", "d5", "c4", "c6", "Nf3", "Nf6", "e3", "Bf5", "Nc3", "e6"],
+        notes: {
+          6: "El blanco defiende c4 y encierra su propio alfil de c1: tomar en c4 ya no tiene gracia.",
+          7: "Sin el caballo en c3 el alfil puede salir: si el blanco prueba cxd5 y Qb3, basta defender b7 con …Qc7.",
+          9: "Estructura completa. Si persiguen al alfil con Nh4, retíralo a g6: si lo cambian, recapturas con el peón h y tu torre gana una columna."
+        }
+      },
+      {
+        id: "eslava-3nc3",
+        name: "Si el caballo de dama sale antes (3.Nc3)",
+        idea: "Con este orden el alfil no debe salir: …e6 y esquema Semieslavo.",
+        moves: ["d4", "d5", "c4", "c6", "Nc3", "Nf6", "e3", "e6", "Nf3", "Nbd7"],
+        notes: {
+          4: "Otro orden: el caballo de dama sale primero y presiona d5.",
+          6: "El blanco sostiene c4.",
+          7: "Aquí …Bf5 es impreciso: tras cxd5 cxd5 Qb3 la dama ataca b7 y d5 a la vez y el alfil tiene que volver a c8. Con …e6 entras en la Semieslava, muy sólida.",
+          9: "Luego …Bd6 y enroque. El alfil de c8 saldrá más tarde por b7, después de …dxc4 y …b5."
+        }
+      },
+      {
+        id: "eslava-cambio",
+        name: "Variante del cambio (3.cxd5)",
+        idea: "Posición simétrica: caballos a f6 y c6, y el alfil a f5 antes de …e6.",
+        moves: ["d4", "d5", "c4", "c6", "cxd5", "cxd5", "Nc3", "Nf6", "Nf3", "Nc6", "Bf4", "Bf5"],
+        notes: {
+          4: "El blanco cambia y la estructura queda simétrica. Tiene fama de tablas, pero hay que jugarla con cuidado.",
+          5: "Recaptura con el peón para mantener el tuyo en d5.",
+          9: "Sin peón en c6, el caballo va a su mejor casilla.",
+          11: "Alfil fuera antes de …e6. Si el blanco ataca b7 con Qb3 después de …e6, la respuesta es …Bb4, clavando el caballo."
+        }
+      },
+      {
+        id: "eslava-londres",
+        name: "Contra la Londres (2.Bf4)",
+        idea: "Si el blanco no juega c4: …c5, …Nc6 y la dama a b6 contra b2, que el alfil de f4 dejó sin defensa.",
+        moves: ["d4", "d5", "Bf4", "Nf6", "e3", "c5", "c3", "Nc6", "Nd2", "Qb6"],
+        notes: {
+          2: "El sistema Londres: el alfil sale antes de e3. Aquí no hay Eslava que valga, porque el blanco no ataca d5.",
           5: "Ataca d4 desde el principio, la mejor forma de incomodar a la Londres.",
           7: "Más presión sobre d4.",
           9: "La jugada molesta: con el alfil en f4, nadie defiende b2. El blanco tiene que gastar tiempo con la dama (Qb3 o Qc2)."

@@ -130,6 +130,7 @@ window.App = (function () {
     }
 
     var due = O.dueItems().length;
+    var learned = O.learnedItems().length;
     var next = O.nextToLearn();
     var today = O.learnedToday();
 
@@ -138,7 +139,12 @@ window.App = (function () {
         ? modeCard("#/aperturas/repaso", "Repasar",
             due + (due === 1 ? " línea toca hoy" : " líneas tocan hoy") + ", todas mezcladas.",
             "review", "")
-        : lockedCard("review", "Repasar", "Nada pendiente hoy.")) +
+        : learned
+          ? modeCard("#/aperturas/repaso", "Repasar",
+              "Nada pendiente hoy. Repaso libre de " +
+              (learned === 1 ? "tu línea aprendida." : "tus " + learned + " líneas aprendidas."),
+              "review", "")
+          : lockedCard("review", "Repasar", "Aún no has aprendido ninguna línea.")) +
       (next
         ? modeCard("#/aperturas/aprender", "Aprender",
             next.opening.name + " · " + next.line.name, "learn",

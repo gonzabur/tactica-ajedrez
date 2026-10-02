@@ -157,6 +157,15 @@
       assert("Aperturas: fallar devuelve a la caja 0",
         window.Store.state.openings.cards[ital.lines[0].id].box === 0);
 
+      // nada pendiente -> repaso libre: acertar no adelanta el calendario
+      O.grade(ital.lines[0].id, true);
+      var antes = JSON.stringify(window.Store.state.openings.cards[ital.lines[0].id]);
+      var libre = O.review();
+      var p0 = libre.next();
+      libre.result({ puzzle: p0, clean: true });
+      assert("Aperturas: el repaso libre sale aunque no toque y no cambia la caja",
+        p0 && JSON.stringify(window.Store.state.openings.cards[ital.lines[0].id]) === antes);
+
       assert("Aperturas: avisa de que falta respuesta a 1.d4",
         O.gaps().join(" ").indexOf("1.d4") >= 0, O.gaps().join(" "));
 

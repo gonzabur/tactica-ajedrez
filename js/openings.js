@@ -57,16 +57,20 @@ window.Openings = (function () {
     return { kind: "later", due: c.due, box: c.box };
   }
 
-  /** Líneas aprendidas de las aperturas elegidas a las que hoy toca repaso. */
-  function dueItems() {
+  /** Líneas aprendidas de las aperturas elegidas (todas, toque o no repaso). */
+  function learnedItems() {
     var out = [];
     selected().forEach(function (op) {
       op.lines.forEach(function (line) {
-        var c = card(line.id);
-        if (c && c.due <= today()) out.push({ opening: op, line: line });
+        if (card(line.id)) out.push({ opening: op, line: line });
       });
     });
     return out;
+  }
+
+  /** De las aprendidas, aquellas a las que hoy toca repaso. */
+  function dueItems() {
+    return learnedItems().filter(function (it) { return card(it.line.id).due <= today(); });
   }
 
   /** La siguiente línea por aprender: termina una apertura antes de la otra. */
@@ -234,7 +238,11 @@ window.Openings = (function () {
    * sesión hasta que se haga bien.
    */
   function review() {
-    var queue = shuffle(dueItems());
+    // Sin nada pendiente, repaso libre: todas las aprendidas. Ahí acertar no
+    // adelanta el calendario (sería hacer trampas al espaciado), pero fallar
+    // sí cuenta: la línea vuelve a la caja 0.
+    var free = !dueItems().length;
+    var queue = shuffle(free ? learnedItems() : dueItems());
     var total = queue.length;
     var graded = {};
     var firstTry = 0;
@@ -243,7 +251,7 @@ window.Openings = (function () {
 
     return {
       id: "openings-review",
-      title: "Repasar",
+      title: free ? "Repaso libre" : "Repasar",
       subtitle: "Aperturas",
       allowRetry: true,
       allowHint: true,
@@ -265,7 +273,7 @@ window.Openings = (function () {
         playing = false;
         if (!graded[id]) {
           graded[id] = true;
-          grade(id, res.clean);
+          if (!free || !res.clean) grade(id, res.clean);
           if (res.clean) firstTry++;
         }
         if (!res.clean) queue.push(current);   // otra vuelta antes de terminar
@@ -298,6 +306,7 @@ window.Openings = (function () {
     toggle: toggle,
     status: status,
     dueItems: dueItems,
+    learnedItems: learnedItems,
     nextToLearn: nextToLearn,
     learnedToday: learnedToday,
     markLearned: markLearned,

@@ -148,26 +148,24 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .screen-play {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  overflow: hidden;
   padding-left: 10px;
   padding-right: 10px;
   gap: 8px;
 }
 
-@supports not (height: 100dvh) { .screen-play { height: 100vh; } }
-
 /* En la pantalla de juego, .screen-play se aplica directamente sobre #app
    (Play.start() reutiliza el mismo elemento), así que un selector de ID
-   (#app) y uno de clase (.screen-play) compiten por height/overflow en el
-   MISMO elemento -- y el ID gana por especificidad aunque aparezca antes en
-   el archivo. Sin esto, el tablero heredaría el overflow-y:auto de #app y
-   podría ganar scroll propio. */
-#app.screen-play {
-  height: 100dvh;
-  overflow: hidden;
-}
-@supports not (height: 100dvh) { #app.screen-play { height: 100vh; } }
+   (#app) y uno de clase (.screen-play) compiten por overflow en el MISMO
+   elemento -- y el ID gana por especificidad aunque aparezca antes en el
+   archivo. Sin esto, el tablero heredaría el overflow-y:auto de #app y
+   podría ganar scroll propio.
+
+   El alto es el 100% que ya tiene #app, y NO 100dvh: en la app instalada en
+   iOS, a veces el documento mide la pantalla menos la barra de estado
+   mientras dvh sigue midiendo la pantalla entera. Con dvh la pantalla de
+   juego quedaba más alta que body (que recorta) y los botones de abajo
+   salían cortados. Con 100% mide siempre lo mismo que quien la recorta. */
+#app.screen-play { overflow: hidden; }
 
 /* --- cabeceras ----------------------------------------------------------- */
 

@@ -255,7 +255,7 @@ window.Openings = (function () {
       subtitle: "Aperturas",
       allowRetry: true,
       allowHint: true,
-      autoNext: true,
+      autoNext: false,   // se para al acabar: ahí se enseña el nombre de la variante
       lives: 0,
       timed: 0,
       affectsRating: false,

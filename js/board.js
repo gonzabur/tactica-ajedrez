@@ -363,6 +363,14 @@ window.Board = (function () {
     root.addEventListener("pointerup", onPointerUp);
     root.addEventListener("pointercancel", onPointerCancel);
     root.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    // iOS: pese a touch-action:none, dos toques rápidos sobre una pieza que
+    // se puede mover (las que al elegirlas pintan marcas nuevas) lanzaban el
+    // gesto de ampliar y el tablero vibraba. Cancelar el toque nativo lo
+    // corta; el tablero funciona con pointer events, que siguen llegando.
+    // Los botones de promoción usan click, que sin el toque no llegaría.
+    root.addEventListener("touchstart", function (ev) {
+      if (!promoLayer.contains(ev.target)) ev.preventDefault();
+    }, { passive: false });
 
     // --- coronación -----------------------------------------------------
 

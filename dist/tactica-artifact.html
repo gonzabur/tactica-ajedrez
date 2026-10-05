@@ -118,6 +118,13 @@
 html, body {
   margin: 0;
   height: 100%;
+  /* En la app instalada en iOS, el 100% del documento a veces mide la
+     pantalla menos la barra de estado (59 puntos de menos), mientras que
+     dvh mide la pantalla entera. Con 100% sobraba una franja vacía abajo;
+     con dvh en solo una parte, los botones salían cortados. dvh aquí, en la
+     raíz, y 100% en todo lo de dentro: todos miden lo mismo, y es la
+     pantalla de verdad. */
+  height: 100dvh;
   /* El documento raíz nunca se desplaza: en iOS Safari, un documento que
      PUEDE hacer scroll a veces se queda "atascado" unos píxeles desplazado
      tras un rebote elástico o un cambio de la barra de direcciones, y nada
@@ -178,11 +185,8 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
    archivo. Sin esto, el tablero heredaría el overflow-y:auto de #app y
    podría ganar scroll propio.
 
-   El alto es el 100% que ya tiene #app, y NO 100dvh: en la app instalada en
-   iOS, a veces el documento mide la pantalla menos la barra de estado
-   mientras dvh sigue midiendo la pantalla entera. Con dvh la pantalla de
-   juego quedaba más alta que body (que recorta) y los botones de abajo
-   salían cortados. Con 100% mide siempre lo mismo que quien la recorta. */
+   El alto es el 100% que ya tiene #app (ver html, body): así mide siempre
+   lo mismo que body, que es quien la recorta. */
 #app.screen-play { overflow: hidden; }
 
 /* --- cabeceras ----------------------------------------------------------- */
@@ -76730,7 +76734,7 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * Versión mostrada en Ajustes. La rellena tools/publicar.sh: sube el último
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
-window.APP_VERSION = "1.1.9";
-window.APP_COMMIT = "55fbc96";
+window.APP_VERSION = "1.1.10";
+window.APP_COMMIT = "eac74be";
 
 </script>

@@ -44,7 +44,8 @@ window.Play = (function () {
     mode = selected;
     over = false;
     root = container;
-    root.className = "screen screen-play" + (mode.notes ? " with-notes" : "");
+    root.className = "screen screen-play" + (mode.notes ? " with-notes" : "") +
+      (mode.guided ? " guided" : "");
     root.innerHTML = TEMPLATE;
 
     els = {

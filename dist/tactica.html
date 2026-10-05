@@ -896,13 +896,30 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 /* Aprender aperturas: el hueco de las etiquetas pasa a ser el de las
    explicaciones. Altura fija (y desplazable si no cabe) para que el tablero
    no se mueva al cambiar de nota. */
+/* El alto que sobre, una vez el tablero ocupa todo el ancho, va a la caja
+   del texto y no a huecos encima y debajo del tablero. Sin alto de sobra,
+   la caja se queda en su mínimo (el de antes) y el texto se desplaza con
+   el dedo: nunca le quita alto al tablero. Su tamaño no depende del texto,
+   así que el tablero no se mueve al cambiar de nota. */
+/* El reparto del sobrante va en proporción 10000 a 1: mientras el tablero
+   pueda crecer se lo lleva prácticamente todo, y la caja solo empieza a
+   crecer cuando el tablero ya ocupa todo el ancho. */
+.with-notes .board-wrap { flex-grow: 10000; max-height: min(100vw, 520px); }
+.with-notes .play-foot {
+  display: flex; flex-direction: column;
+  flex: 1 0 auto;
+}
 .with-notes .puzzle-info {
-  height: 106px;                  /* cabe la nota final más larga con su nombre */
+  height: auto;
+  flex: 1 1 0;
+  min-height: 46px;               /* repaso: lo mismo que el resto de modos */
   overflow-y: auto;
+  overscroll-behavior: contain;
   text-align: left;
   font-size: 13px; line-height: 1.45;
   color: var(--text-dim);
 }
+.with-notes.guided .puzzle-info { min-height: 74px; }   /* aprender */
 .with-notes .chips { justify-content: flex-start; }
 .line-plan { margin: 6px 0 0; }
 .chips {
@@ -1196,6 +1213,51 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
   }
   .mark.flash-right::after, .mark.flash-wrong::after { transform: scale(1); }
   .mark.mate::after { animation: none; opacity: 1; }
+}
+
+/* --- móvil en horizontal: tablero a la izquierda, el resto a la derecha -----
+   En vertical todo va apilado; girado, el alto (~390 puntos en un iPhone)
+   no da para cabecera + marcador + tablero + pie, y el tablero se quedaba
+   diminuto. iOS ignora el "portrait" del manifiesto, así que en vez de
+   bloquear el giro se reparte en dos columnas: el tablero ocupa todo el
+   alto y la columna derecha lleva lo demás. Solo la pantalla de juego: las
+   listas ya tienen scroll. */
+@media (orientation: landscape) and (max-height: 500px) {
+  #app.screen-play {
+    max-width: 1000px;
+    container-type: size;          /* para medir el alto disponible con cqh */
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "board head"
+      "board hud"
+      "board moves"
+      "board foot";
+    column-gap: 16px;
+    row-gap: 8px;
+    padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+             max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+  .screen-play .play-head { grid-area: head; padding: 0; }
+  .screen-play .hud { grid-area: hud; }
+  .screen-play .movebar { grid-area: moves; }
+  .screen-play .board-wrap {
+    grid-area: board;
+    width: 100cqh;                 /* columna cuadrada: tan ancha como alta */
+    max-height: none;
+    margin: 0;
+  }
+  .screen-play .play-foot {
+    grid-area: foot;
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .screen-play .actions { margin-top: auto; }   /* botones abajo del todo */
+
+  /* la tarjeta de fin de partida puede no caber en alto: que se desplace */
+  .gameover { overflow-y: auto; }
+  .gameover-card { margin: auto; }
 }
 
 /* Pantalla de arranque: se muestra mientras se indexa el banco de puzzles. */
@@ -75196,7 +75258,7 @@ window.Openings = (function () {
       allowRetry: true,
       allowHint: true,
       autoNext: false,   // se para al acabar: ahí se enseña el nombre de la variante
-      notes: true,       // y el plan que sigue, en la caja alta de las notas
+      notes: true,       // y el plan que sigue, en la caja de las notas
       lives: 0,
       timed: 0,
       affectsRating: false,
@@ -75311,7 +75373,8 @@ window.Play = (function () {
     mode = selected;
     over = false;
     root = container;
-    root.className = "screen screen-play" + (mode.notes ? " with-notes" : "");
+    root.className = "screen screen-play" + (mode.notes ? " with-notes" : "") +
+      (mode.guided ? " guided" : "");
     root.innerHTML = TEMPLATE;
 
     els = {
@@ -76672,8 +76735,8 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * Versión mostrada en Ajustes. La rellena tools/publicar.sh: sube el último
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
-window.APP_VERSION = "1.1.7";
-window.APP_COMMIT = "429bf25";
+window.APP_VERSION = "1.1.8";
+window.APP_COMMIT = "a8db125";
 
 </script>
 </body>

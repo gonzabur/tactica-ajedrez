@@ -771,6 +771,7 @@ html.standalone, html.standalone body { height: 100vh; }
 .hud-value-row {
   display: flex; align-items: baseline; gap: 5px;
   min-width: 0;
+  height: 19px;   /* alto fijo: con las vidas (corazones) medía 1,5 px más y el tablero bajaba */
 }
 .hud-value {
   font-size: 16px; font-weight: 700;
@@ -808,7 +809,6 @@ html.standalone, html.standalone body { height: 100vh; }
 
 .movebar {
   display: flex; align-items: center; gap: 5px;
-  margin-top: 4px;
 }
 
 .nav-btn {
@@ -899,22 +899,22 @@ html.standalone, html.standalone body { height: 100vh; }
   margin-bottom: 4px;
 }
 
-/* Aprender aperturas: el hueco de las etiquetas pasa a ser el de las
-   explicaciones. Altura fija (y desplazable si no cabe) para que el tablero
-   no se mueva al cambiar de nota. */
-/* El alto que sobre, una vez el tablero ocupa todo el ancho, va a la caja
-   del texto y no a huecos encima y debajo del tablero. Sin alto de sobra,
-   la caja se queda en su mínimo (el de antes) y el texto se desplaza con
-   el dedo: nunca le quita alto al tablero. Su tamaño no depende del texto,
-   así que el tablero no se mueve al cambiar de nota. */
-/* El reparto del sobrante va en proporción 10000 a 1: mientras el tablero
-   pueda crecer se lo lleva prácticamente todo, y la caja solo empieza a
-   crecer cuando el tablero ya ocupa todo el ancho. */
-.with-notes .board-wrap { flex-grow: 10000; max-height: min(100vw, 520px); }
-.with-notes .play-foot {
+/* Mismo sitio para el tablero en todos los modos: justo bajo el marcador.
+   El alto que sobre una vez el tablero ocupa todo el ancho no se reparte en
+   huecos alrededor del tablero, va al pie: los botones quedan abajo del
+   todo y, en aperturas, la caja del texto crece. El reparto va 10000 a 1:
+   mientras el tablero pueda crecer se lo lleva prácticamente todo. */
+.screen-play .board-wrap { flex-grow: 10000; max-height: min(100vw, 520px); }
+.screen-play .play-foot {
   display: flex; flex-direction: column;
   flex: 1 0 auto;
 }
+.screen-play .actions { margin-top: auto; }
+
+/* Aperturas: el hueco de las etiquetas es el de las explicaciones, y se
+   queda con el alto sobrante del pie. Sin sobrante, se queda en su mínimo y
+   el texto se desplaza con el dedo: nunca le quita alto al tablero. Su
+   tamaño no depende del texto, así que el tablero no se mueve. */
 .with-notes .puzzle-info {
   height: auto;
   flex: 1 1 0;
@@ -1262,11 +1262,9 @@ html.standalone, html.standalone body { height: 100vh; }
   }
   .screen-play .play-foot {
     grid-area: foot;
-    display: flex; flex-direction: column;
     min-height: 0;
     padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
-  .screen-play .actions { margin-top: auto; }   /* botones abajo del todo */
 
   /* la tarjeta de fin de partida puede no caber en alto: que se desplace */
   .gameover { overflow-y: auto; }
@@ -76749,7 +76747,7 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
 window.APP_VERSION = "1.1.10";
-window.APP_COMMIT = "1c09841";
+window.APP_COMMIT = "8ca0720";
 
 </script>
 </body>

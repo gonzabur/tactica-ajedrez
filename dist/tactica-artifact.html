@@ -885,12 +885,14 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
    explicaciones. Altura fija (y desplazable si no cabe) para que el tablero
    no se mueva al cambiar de nota. */
 .with-notes .puzzle-info {
-  height: 74px;
+  height: 106px;                  /* cabe la nota final más larga con su nombre */
   overflow-y: auto;
   text-align: left;
   font-size: 13px; line-height: 1.45;
   color: var(--text-dim);
 }
+.with-notes .chips { justify-content: flex-start; }
+.line-plan { margin: 6px 0 0; }
 .chips {
   display: flex; gap: 6px;
   justify-content: center;
@@ -75182,6 +75184,7 @@ window.Openings = (function () {
       allowRetry: true,
       allowHint: true,
       autoNext: false,   // se para al acabar: ahí se enseña el nombre de la variante
+      notes: true,       // y el plan que sigue, en la caja alta de las notas
       lives: 0,
       timed: 0,
       affectsRating: false,
@@ -75559,7 +75562,7 @@ window.Play = (function () {
     }
     els.actions.innerHTML = html;
 
-    if (mode.notes) { /* la caja es de las notas */ }
+    if (mode.guided) { /* aprendiendo: la caja es de las notas, la rellena renderMoves */ }
     else if (phase === "solved" && puzzle) renderPuzzleInfo(puzzle);
     else els.info.innerHTML = "";
 
@@ -75576,10 +75579,13 @@ window.Play = (function () {
   /** Al resolver, se muestran los motivos del puzzle: es donde se aprende. */
   function renderPuzzleInfo(puzzle) {
     if (puzzle.line) {
-      // aperturas: el nombre de la variante recién jugada, para asociarlo
+      // aperturas: el nombre de la variante recién jugada, para asociarlo, y
+      // la nota de la última jugada, que cuenta los planes que siguen
+      var plan = puzzle.line.notes[puzzle.line.moves.length - 1];
       els.info.innerHTML =
-        '<div class="chips"><span class="chip">' + puzzle.line.name + "</span></div>" +
-        '<p class="theme-desc">' + puzzle.opening.name + "</p>";
+        '<div class="chips"><span class="chip">' + puzzle.line.name + "</span>" +
+        '<span class="chip muted">' + puzzle.opening.name + "</span></div>" +
+        (plan ? '<p class="line-plan">' + plan + "</p>" : "");
       return;
     }
     var interesting = window.THEMES.ranked(puzzle.themes).slice(0, 3);
@@ -76654,7 +76660,7 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * Versión mostrada en Ajustes. La rellena tools/publicar.sh: sube el último
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
-window.APP_VERSION = "1.1.6";
-window.APP_COMMIT = "7ec36e8";
+window.APP_VERSION = "1.1.7";
+window.APP_COMMIT = "429bf25";
 
 </script>

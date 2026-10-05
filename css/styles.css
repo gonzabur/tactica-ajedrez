@@ -867,12 +867,14 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
    explicaciones. Altura fija (y desplazable si no cabe) para que el tablero
    no se mueva al cambiar de nota. */
 .with-notes .puzzle-info {
-  height: 74px;
+  height: 106px;                  /* cabe la nota final más larga con su nombre */
   overflow-y: auto;
   text-align: left;
   font-size: 13px; line-height: 1.45;
   color: var(--text-dim);
 }
+.with-notes .chips { justify-content: flex-start; }
+.line-plan { margin: 6px 0 0; }
 .chips {
   display: flex; gap: 6px;
   justify-content: center;

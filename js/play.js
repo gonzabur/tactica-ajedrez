@@ -307,7 +307,7 @@ window.Play = (function () {
     }
     els.actions.innerHTML = html;
 
-    if (mode.notes) { /* la caja es de las notas */ }
+    if (mode.guided) { /* aprendiendo: la caja es de las notas, la rellena renderMoves */ }
     else if (phase === "solved" && puzzle) renderPuzzleInfo(puzzle);
     else els.info.innerHTML = "";
 
@@ -324,10 +324,13 @@ window.Play = (function () {
   /** Al resolver, se muestran los motivos del puzzle: es donde se aprende. */
   function renderPuzzleInfo(puzzle) {
     if (puzzle.line) {
-      // aperturas: el nombre de la variante recién jugada, para asociarlo
+      // aperturas: el nombre de la variante recién jugada, para asociarlo, y
+      // la nota de la última jugada, que cuenta los planes que siguen
+      var plan = puzzle.line.notes[puzzle.line.moves.length - 1];
       els.info.innerHTML =
-        '<div class="chips"><span class="chip">' + puzzle.line.name + "</span></div>" +
-        '<p class="theme-desc">' + puzzle.opening.name + "</p>";
+        '<div class="chips"><span class="chip">' + puzzle.line.name + "</span>" +
+        '<span class="chip muted">' + puzzle.opening.name + "</span></div>" +
+        (plan ? '<p class="line-plan">' + plan + "</p>" : "");
       return;
     }
     var interesting = window.THEMES.ranked(puzzle.themes).slice(0, 3);

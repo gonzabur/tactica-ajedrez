@@ -256,6 +256,7 @@ window.Openings = (function () {
       allowRetry: true,
       allowHint: true,
       autoNext: false,   // se para al acabar: ahí se enseña el nombre de la variante
+      notes: true,       // y el plan que sigue, en la caja alta de las notas
       lives: 0,
       timed: 0,
       affectsRating: false,

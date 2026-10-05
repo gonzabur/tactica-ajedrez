@@ -46,7 +46,7 @@
      distinto por versión es la única forma 100% fiable de evitarlo:
      hay que subir este valor (igual que CACHE_VERSION) en cada cambio
      de css/styles.css. -->
-<link rel="stylesheet" href="css/styles.css?v=2f61163d">
+<link rel="stylesheet" href="css/styles.css?v=5b155124">
 
 <script id="tema-inicial">
   // Se estampa el tema ANTES de pintar nada: si no, quien tenga elegido el modo
@@ -60,6 +60,8 @@
       : (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
           ? "light" : "dark");
     document.documentElement.setAttribute("data-ui-theme", tema);
+    // app añadida a la pantalla de inicio de iOS (ver html.standalone en el CSS)
+    if (navigator.standalone) document.documentElement.classList.add("standalone");
   })();
 </script>
 </head>

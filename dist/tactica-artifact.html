@@ -12,6 +12,8 @@
       : (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
           ? "light" : "dark");
     document.documentElement.setAttribute("data-ui-theme", tema);
+    // app añadida a la pantalla de inicio de iOS (ver html.standalone en el CSS)
+    if (navigator.standalone) document.documentElement.classList.add("standalone");
   })();
 </script>
 
@@ -118,13 +120,6 @@
 html, body {
   margin: 0;
   height: 100%;
-  /* En la app instalada en iOS, el 100% del documento a veces mide la
-     pantalla menos la barra de estado (59 puntos de menos), mientras que
-     dvh mide la pantalla entera. Con 100% sobraba una franja vacía abajo;
-     con dvh en solo una parte, los botones salían cortados. dvh aquí, en la
-     raíz, y 100% en todo lo de dentro: todos miden lo mismo, y es la
-     pantalla de verdad. */
-  height: 100dvh;
   /* El documento raíz nunca se desplaza: en iOS Safari, un documento que
      PUEDE hacer scroll a veces se queda "atascado" unos píxeles desplazado
      tras un rebote elástico o un cambio de la barra de direcciones, y nada
@@ -188,6 +183,13 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
    El alto es el 100% que ya tiene #app (ver html, body): así mide siempre
    lo mismo que body, que es quien la recorta. */
 #app.screen-play { overflow: hidden; }
+
+/* App instalada en iOS: el 100% (y dvh, innerHeight...) mide la pantalla
+   menos la barra de estado, 793 de 852 puntos en vertical, y abajo sobraba
+   una franja vacía. Medido en el iPhone: solo vh/lvh dan la pantalla
+   entera. Solo aquí: en Safari, vh es más alto que lo visible y la barra de
+   abajo taparía los botones. La clase la pone index.html antes de pintar. */
+html.standalone, html.standalone body { height: 100vh; }
 
 /* --- cabeceras ----------------------------------------------------------- */
 
@@ -76488,32 +76490,6 @@ window.App = (function () {
 
   // --- ajustes -----------------------------------------------------------
 
-  // ponytail: TEMPORAL -- medidas de pantalla para averiguar qué alto da
-  // bien iOS en la app instalada (franja vacía abajo). Quitar al resolverlo.
-  function screenReadings() {
-    function probe(css) {
-      var el = document.createElement("div");
-      el.style.cssText = "position:fixed;top:0;left:0;width:1px;visibility:hidden;" + css;
-      document.body.appendChild(el);
-      var cs = getComputedStyle(el);
-      var out = Math.round(el.getBoundingClientRect().height) +
-        (css.indexOf("padding") >= 0 ? " (top " + cs.paddingTop + ", bottom " + cs.paddingBottom + ")" : "");
-      el.remove();
-      return out;
-    }
-    var app = document.getElementById("app").getBoundingClientRect();
-    return [
-      "standalone " + (navigator.standalone === true) + " · " + screen.width + "x" + screen.height,
-      "innerHeight " + window.innerHeight + " · outer " + window.outerHeight,
-      "visualViewport " + (window.visualViewport ? Math.round(window.visualViewport.height) : "-"),
-      "html client " + document.documentElement.clientHeight + " · #app " + Math.round(app.height),
-      "100% " + probe("height:100%") + " · 100vh " + probe("height:100vh"),
-      "100dvh " + probe("height:100dvh") + " · 100svh " + probe("height:100svh") +
-        " · 100lvh " + probe("height:100lvh"),
-      "safe " + probe("height:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)")
-    ].join("\n");
-  }
-
   function settings() {
     var s = window.Store.settings;
     var pieceSet = window.PIECE_SETS[s.pieces] || window.PIECE_SETS.cburnett;
@@ -76573,8 +76549,7 @@ window.App = (function () {
       "Reglas de ajedrez con chess.js (BSD). Los juegos de piezas son obra de " +
       "distintos autores, cada uno con su licencia; el del juego elegido aparece " +
       "arriba, junto al selector.</p>" +
-      '<p class="credit-line">Versión ' + window.APP_VERSION + " (" + window.APP_COMMIT + ")</p>" +
-      '<pre class="credit-line" style="text-align:left;white-space:pre-wrap">' + screenReadings() + "</pre>"
+      '<p class="credit-line">Versión ' + window.APP_VERSION + " (" + window.APP_COMMIT + ")</p>"
     );
     wireNav();
 
@@ -76762,6 +76737,6 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
 window.APP_VERSION = "1.1.10";
-window.APP_COMMIT = "bb722af";
+window.APP_COMMIT = "1c09841";
 
 </script>

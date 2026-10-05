@@ -693,32 +693,6 @@ window.App = (function () {
 
   // --- ajustes -----------------------------------------------------------
 
-  // ponytail: TEMPORAL -- medidas de pantalla para averiguar qué alto da
-  // bien iOS en la app instalada (franja vacía abajo). Quitar al resolverlo.
-  function screenReadings() {
-    function probe(css) {
-      var el = document.createElement("div");
-      el.style.cssText = "position:fixed;top:0;left:0;width:1px;visibility:hidden;" + css;
-      document.body.appendChild(el);
-      var cs = getComputedStyle(el);
-      var out = Math.round(el.getBoundingClientRect().height) +
-        (css.indexOf("padding") >= 0 ? " (top " + cs.paddingTop + ", bottom " + cs.paddingBottom + ")" : "");
-      el.remove();
-      return out;
-    }
-    var app = document.getElementById("app").getBoundingClientRect();
-    return [
-      "standalone " + (navigator.standalone === true) + " · " + screen.width + "x" + screen.height,
-      "innerHeight " + window.innerHeight + " · outer " + window.outerHeight,
-      "visualViewport " + (window.visualViewport ? Math.round(window.visualViewport.height) : "-"),
-      "html client " + document.documentElement.clientHeight + " · #app " + Math.round(app.height),
-      "100% " + probe("height:100%") + " · 100vh " + probe("height:100vh"),
-      "100dvh " + probe("height:100dvh") + " · 100svh " + probe("height:100svh") +
-        " · 100lvh " + probe("height:100lvh"),
-      "safe " + probe("height:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)")
-    ].join("\n");
-  }
-
   function settings() {
     var s = window.Store.settings;
     var pieceSet = window.PIECE_SETS[s.pieces] || window.PIECE_SETS.cburnett;
@@ -778,8 +752,7 @@ window.App = (function () {
       "Reglas de ajedrez con chess.js (BSD). Los juegos de piezas son obra de " +
       "distintos autores, cada uno con su licencia; el del juego elegido aparece " +
       "arriba, junto al selector.</p>" +
-      '<p class="credit-line">Versión ' + window.APP_VERSION + " (" + window.APP_COMMIT + ")</p>" +
-      '<pre class="credit-line" style="text-align:left;white-space:pre-wrap">' + screenReadings() + "</pre>"
+      '<p class="credit-line">Versión ' + window.APP_VERSION + " (" + window.APP_COMMIT + ")</p>"
     );
     wireNav();
 

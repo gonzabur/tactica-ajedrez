@@ -1236,10 +1236,16 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
       "board foot";
     column-gap: 16px;
     row-gap: 8px;
-    padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
-             max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    /* sin margen arriba ni abajo: el tablero llega a los dos bordes y mide
+       lo mismo que en vertical (el ancho del móvil). La barra de inicio
+       queda encima del borde inferior del tablero, como en otras apps de
+       ajedrez; la columna derecha sí respeta las zonas seguras. */
+    padding: 0 max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
   }
-  .screen-play .play-head { grid-area: head; padding: 0; }
+  .screen-play .play-head {
+    grid-area: head;
+    padding: max(8px, env(safe-area-inset-top)) 0 0;
+  }
   .screen-play .hud { grid-area: hud; }
   .screen-play .movebar { grid-area: moves; }
   .screen-play .board-wrap {
@@ -1252,6 +1258,7 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
     grid-area: foot;
     display: flex; flex-direction: column;
     min-height: 0;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
   .screen-play .actions { margin-top: auto; }   /* botones abajo del todo */
 
@@ -76735,8 +76742,8 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * Versión mostrada en Ajustes. La rellena tools/publicar.sh: sube el último
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
-window.APP_VERSION = "1.1.8";
-window.APP_COMMIT = "a8db125";
+window.APP_VERSION = "1.1.9";
+window.APP_COMMIT = "55fbc96";
 
 </script>
 </body>

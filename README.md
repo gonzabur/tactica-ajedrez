@@ -43,9 +43,10 @@ se mira una vez.
    hay nada contra 1.d4), la app lo avisa.
 2. **Aprender.** Cada línea se juega guiada sobre el tablero: se marca la jugada
    que toca y se explica por qué se hace. Después hay que repetirla de memoria
-   («ahora inténtalo tú»): si pasan 10 segundos sin mover parpadea la pieza, y
-   a los 15 también la casilla de destino. Si ese intento sale limpio, la línea
-   queda aprendida; si hubo pista o fallo, se pide un segundo. Las líneas
+   («ahora inténtalo tú»), tres veces seguidas. Si te atascas, primero parpadea
+   la pieza y después también la casilla de destino; esa ayuda llega cada vez
+   más tarde (a los 5 y 10 segundos en el primer intento, 10 y 15 en el
+   segundo, 15 y 20 en el tercero). Tras el tercero queda aprendida. Las líneas
    nuevas van de una apertura en una, terminando una antes de empezar la
    siguiente, y se recomiendan tres al día como mucho.
 3. **Repasar.** Lo aprendido vuelve mezclado y ya sin guía, con repetición

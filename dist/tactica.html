@@ -75362,26 +75362,28 @@ window.Openings = (function () {
   }
 
   /**
-   * Aprender una línea tiene hasta tres pasadas:
+   * Aprender una línea son cuatro pasadas, siempre:
    *
    *   0. guiada: se marca la jugada a hacer y se explica cada una;
-   *   1. de memoria ("ahora inténtalo tú"): sin marca. Si el jugador se
-   *      atasca, play.js le va destapando la jugada (HINT_AFTER);
-   *   2. otra de memoria, solo si la anterior no salió limpia (con alguna
-   *      pista o algún fallo).
+   *   1-3. tres de memoria ("ahora inténtalo tú"), sin marca. Si el jugador
+   *      se atasca, play.js le va destapando la jugada: primero parpadea la
+   *      pieza y luego también el destino. Esa ayuda llega cada vez más
+   *      tarde (HINT_AFTER), para que cada pasada exija un poco más.
    *
    * Sacarla de memoria nada más verla es lo que la fija; por eso la línea no
    * cuenta como aprendida hasta terminar las pasadas. Sin `lineId` va
    * encadenando las siguientes por aprender; con él, solo esa línea.
    */
-  var HINT_AFTER = [10, 15];   // segundos sin mover: se marca la pieza; y después, también el destino
+  // Por intento: segundos sin mover hasta marcar la pieza y hasta marcar también el destino
+  var HINT_AFTER = [[5, 10], [10, 15], [15, 20]];
+  var ATTEMPTS = HINT_AFTER.length;
 
   function learn(lineId) {
     var current = null;
     var count = 0;
     var single = lineId ? findLine(lineId) : null;
     var served = false;
-    var stage = 0;         // pasada que se está jugando (ver arriba)
+    var stage = 0;         // pasada que se está jugando: 0 guiada, 1..ATTEMPTS de memoria
     var repeat = false;    // la siguiente pasada es de la misma línea
 
     return {
@@ -75393,7 +75395,7 @@ window.Openings = (function () {
       allowHint: false,
       autoNext: false,
       get guided() { return stage === 0; },
-      get hintAfter() { return stage === 0 ? null : HINT_AFTER; },
+      get hintAfter() { return stage === 0 ? null : HINT_AFTER[stage - 1]; },
       get playingNote() {
         return stage === 0 ? "" : "De memoria. Si te atascas, se irá marcando la jugada.";
       },
@@ -75419,23 +75421,23 @@ window.Openings = (function () {
 
       loadText: function (puzzle) {
         return stage === 0 ? puzzle.opening.name + " · " + puzzle.line.name
-          : stage === 1 ? "Ahora inténtalo tú" : "Otra vez, de memoria";
+          : "De memoria: intento " + stage + " de " + ATTEMPTS;
       },
 
       noteAt: noteAt,
 
       result: function (res) {
-        if (stage === 0) {
-          stage = 1; repeat = true;
-          return { text: "Ahora inténtalo tú", nextLabel: "Inténtalo tú", plan: false };
-        }
-        if (stage === 1 && !res.clean) {
-          stage = 2; repeat = true;
-          return { text: "Casi. Una vez más, de memoria", nextLabel: "Otra vez", plan: false };
+        if (stage < ATTEMPTS) {
+          stage++; repeat = true;
+          return {
+            text: stage === 1 ? "Ahora inténtalo tú" : "Bien. Otra vez, de memoria",
+            nextLabel: "Intento " + stage + " de " + ATTEMPTS,
+            plan: false
+          };
         }
         markLearned(res.puzzle.line.id);
         count++;
-        return { text: res.clean ? "¡Línea aprendida!" : "Línea aprendida. Hoy la repasarás otra vez" };
+        return { text: "¡Línea aprendida!" };
       },
 
       hud: function () {
@@ -75443,7 +75445,9 @@ window.Openings = (function () {
         var p = progress(current.opening);
         return [
           { label: "Apertura", value: current.opening.name },
-          { label: "Aprendidas", value: p.learned + "/" + p.total }
+          stage === 0
+            ? { label: "Aprendidas", value: p.learned + "/" + p.total }
+            : { label: "De memoria", value: stage + "/" + ATTEMPTS }
         ];
       },
 
@@ -75724,8 +75728,7 @@ window.Play = (function () {
   /**
    * Pistas por tiempo (aprender, de memoria): si pasan `mode.hintAfter[0]`
    * segundos sin mover, parpadea la pieza; a los `[1]`, la pieza y el
-   * destino, y eso se repite cada 5 s para que no se pierda. Cualquiera de
-   * las dos cuenta como pista: el intento ya no sale limpio.
+   * destino, y eso se repite cada 5 s para que no se pierda.
    */
   function startHints() {
     stopHints();
@@ -77041,8 +77044,8 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * Versión mostrada en Ajustes. La rellena tools/publicar.sh: sube el último
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
-window.APP_VERSION = "1.1.11";
-window.APP_COMMIT = "fd8d94f";
+window.APP_VERSION = "1.1.12";
+window.APP_COMMIT = "38bfdd1";
 
 </script>
 </body>

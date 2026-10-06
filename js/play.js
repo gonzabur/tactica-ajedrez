@@ -171,8 +171,7 @@ window.Play = (function () {
   /**
    * Pistas por tiempo (aprender, de memoria): si pasan `mode.hintAfter[0]`
    * segundos sin mover, parpadea la pieza; a los `[1]`, la pieza y el
-   * destino, y eso se repite cada 5 s para que no se pierda. Cualquiera de
-   * las dos cuenta como pista: el intento ya no sale limpio.
+   * destino, y eso se repite cada 5 s para que no se pierda.
    */
   function startHints() {
     stopHints();

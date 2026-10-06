@@ -192,36 +192,32 @@
       window.Store.reset();
       var O = window.Openings, id = "italiana-principal";
 
-      // limpio a la primera: guiada + un intento
       var m = O.learn(id);
       var p = m.next();
       assert("Aprender: la primera pasada es guiada y sin pistas por tiempo", m.guided && !m.hintAfter);
       var r0 = m.result({ puzzle: p, clean: true });
       assert("Aprender: tras la guiada la línea aún NO cuenta como aprendida",
         !O.learnedItems().length && window.Store.state.openings.cards[id] === undefined);
-      assert("Aprender: tras la guiada se propone intentarlo y no se enseña el plan",
-        r0.nextLabel === "Inténtalo tú" && r0.plan === false);
-      var p1 = m.next();
-      assert("Aprender: el intento es la misma línea, sin guía y con pistas a los 10 y 15 s",
-        p1.line.id === id && !m.guided && m.hintAfter[0] === 10 && m.hintAfter[1] === 15);
-      var r1 = m.result({ puzzle: p1, clean: true });
-      assert("Aprender: un intento limpio basta: aprendida y con plan",
-        !!window.Store.state.openings.cards[id] && r1.plan !== false && !r1.nextLabel);
-      assert("Aprender: después no queda nada más de esa línea", m.next() === null);
+      assert("Aprender: tras la guiada se propone el intento 1 y no se enseña el plan",
+        r0.nextLabel === "Intento 1 de 3" && r0.plan === false);
 
-      // con pista o fallo: hace falta un segundo intento
-      window.Store.reset();
-      m = O.learn(id);
-      p = m.next(); m.result({ puzzle: p, clean: true });
-      p = m.next();
-      var r2 = m.result({ puzzle: p, clean: false });
-      assert("Aprender: un intento con pista o fallo pide otro y aún no la da por aprendida",
-        r2.nextLabel === "Otra vez" && window.Store.state.openings.cards[id] === undefined);
-      p = m.next();
-      assert("Aprender: el segundo intento es de la misma línea", p.line.id === id && !m.guided);
-      m.result({ puzzle: p, clean: false });
-      assert("Aprender: tras el segundo intento se da por aprendida aunque no salga limpia",
-        !!window.Store.state.openings.cards[id] && m.next() === null);
+      // tres intentos de memoria, siempre, salgan limpios o no; la ayuda llega cada vez más tarde
+      var tiempos = [], mismos = true, pendientes = true, r;
+      for (var k = 1; k <= 3; k++) {
+        p = m.next();
+        mismos = mismos && p && p.line.id === id && !m.guided;
+        tiempos.push(m.hintAfter.join("/"));
+        r = m.result({ puzzle: p, clean: true });
+        if (k < 3) pendientes = pendientes && r.plan === false &&
+          window.Store.state.openings.cards[id] === undefined;
+      }
+      assert("Aprender: los tres intentos son la misma línea, sin guía", mismos);
+      assert("Aprender: las pistas llegan a los 5/10, 10/15 y 15/20 s",
+        tiempos.join(" ") === "5/10 10/15 15/20", tiempos.join(" "));
+      assert("Aprender: aunque salgan limpios, no se da por aprendida hasta el tercero", pendientes);
+      assert("Aprender: tras el tercero queda aprendida y se enseña el plan",
+        !!window.Store.state.openings.cards[id] && r.plan !== false && !r.nextLabel);
+      assert("Aprender: después no queda nada más de esa línea", m.next() === null);
     } finally {
       window.Store.importJson(saved);
     }

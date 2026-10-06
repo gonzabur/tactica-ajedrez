@@ -15,6 +15,9 @@ window.Play = (function () {
   var puzzleSecondsLeft = 0;
   var over = false;
   var pending = null;      // temporizador del salto al siguiente puzzle
+  var planFor = null;      // aperturas: línea ya terminada cuyo plan se dibuja con flechas
+  var lastOutcome = {};    // lo que devolvió el modo al acabar el último puzzle
+  var hintTimers = [];     // pistas que llegan solas si el jugador se atasca
 
   var TEMPLATE =
     '<header class="play-head">' +
@@ -118,6 +121,7 @@ window.Play = (function () {
     if (player) player.stop();
     if (clock) { window.clearInterval(clock); clock = null; }
     stopPuzzleClock();
+    stopHints();
     if (pending) { window.clearTimeout(pending); pending = null; }
     player = null;
     board = null;
@@ -138,6 +142,11 @@ window.Play = (function () {
   }
 
   function onPuzzleLoad(puzzle, color) {
+    planFor = null;
+    lastOutcome = {};
+    stopHints();
+    board.setArrows(null);
+    board.setGuide(null);
     setStatus(mode.loadText ? mode.loadText(puzzle, color)
       : (color === "w" ? "Juegan las blancas" : "Juegan las negras"), "turn " + color);
     renderActions("playing");
@@ -147,14 +156,47 @@ window.Play = (function () {
 
   /** Aprender: marca en el tablero la jugada que toca y la dice. */
   function onTurn(ply) {
-    if (!mode.guided) return;
+    startHints();
+    if (!mode.guided) {
+      // de memoria: se avisa de que toca, sin decir qué
+      if (mode.hintAfter) setStatus("Te toca", "turn " + (player.puzzle.playerFirst ? "w" : "b"));
+      return;
+    }
     var uci = player.puzzle.moves[ply];
     board.setGuide([uci.slice(0, 2), uci.slice(2, 4)]);
     setStatus("Te toca: " + player.puzzle.line.moves[ply],
       "turn " + (player.puzzle.playerFirst ? "w" : "b"));
   }
 
+  /**
+   * Pistas por tiempo (aprender, de memoria): si pasan `mode.hintAfter[0]`
+   * segundos sin mover, parpadea la pieza; a los `[1]`, la pieza y el
+   * destino, y eso se repite cada 5 s para que no se pierda. Cualquiera de
+   * las dos cuenta como pista: el intento ya no sale limpio.
+   */
+  function startHints() {
+    stopHints();
+    var after = mode.hintAfter;
+    if (!after) return;
+    hintTimers.push(window.setTimeout(function () {
+      if (player.atLive) player.hint();
+    }, after[0] * 1000));
+    hintTimers.push(window.setTimeout(function () {
+      if (player.atLive) player.hintMove();
+      hintTimers.push(window.setInterval(function () {
+        if (player.atLive) player.hintMove();
+      }, 5000));
+    }, after[1] * 1000));
+  }
+
+  function stopHints() {
+    // clearTimeout y clearInterval comparten identificadores
+    hintTimers.forEach(function (t) { window.clearTimeout(t); });
+    hintTimers = [];
+  }
+
   function onMovePlayed(move, game) {
+    stopHints();
     if (!window.Store.settings.sound) return;
     if (game.in_check()) window.Sound.check();
     else if (move.captured) window.Sound.capture();
@@ -165,6 +207,7 @@ window.Play = (function () {
     if (window.Store.settings.sound) window.Sound.wrong();
     if (mode.allowRetry) {
       setStatus("No es esa. Prueba otra vez.", "bad");
+      startHints();   // sigue siendo su turno: la cuenta empieza de nuevo
       return;
     }
     setStatus("Fallo. Podrás repasarlo al terminar.", "bad");
@@ -176,7 +219,9 @@ window.Play = (function () {
     if (window.Store.settings.sound) {
       if (res.mate) window.Sound.win(); else window.Sound.right();
     }
+    stopHints();
     var outcome = mode.result(res) || {};
+    lastOutcome = outcome;
     renderHud();
 
     if (outcome.over) { finish(mode.finish ? mode.finish() : {}); return; }
@@ -202,6 +247,7 @@ window.Play = (function () {
   function onRevealed(puzzle) {
     stopPuzzleClock();
     var outcome = mode.result({ puzzle: puzzle, clean: false, failed: true }) || {};
+    lastOutcome = outcome;
     renderHud();
     if (outcome.over) { finish(mode.finish ? mode.finish() : {}); return; }
     if (mode.autoNext) {
@@ -244,6 +290,7 @@ window.Play = (function () {
     els.moves.innerHTML = html;
     if (mode.noteAt) els.info.textContent = mode.noteAt(player.puzzle, viewAt - 1);
     if (mode.guided) board.setGuide(null);
+    showPlan(viewAt === line.length - 1);
     // Sin el atributo `disabled`: iOS trata los toques rápidos sobre un botón
     // desactivado como un doble toque sobre contenido "muerto" e intenta
     // ampliar, y como el zoom está bloqueado el tablero da un tirón arriba y
@@ -260,6 +307,30 @@ window.Play = (function () {
       els.moves.scrollLeft =
         actual.offsetLeft - els.moves.clientWidth / 2 + actual.offsetWidth / 2;
     }
+  }
+
+  /**
+   * Aperturas: al terminar una línea, las flechas numeradas del plan que
+   * sigue. Solo sobre la posición final: al retroceder con las flechas de
+   * jugadas se quitan, porque están pensadas para esa posición.
+   */
+  function showPlan(atEnd) {
+    var arrows = planFor && atEnd ? window.Openings.planArrows(planFor.line) : [];
+    board.setArrows(arrows);
+    // aprendiendo, la caja es la nota de la jugada: la leyenda va detrás
+    if (arrows.length && mode.noteAt) els.info.insertAdjacentHTML("beforeend", arrowLegend(arrows));
+  }
+
+  /** Qué significa cada color, solo de los que salen en estas flechas. */
+  function arrowLegend(arrows) {
+    var names = { own: "tu plan", attack: "presión", opp: "rival" };
+    var html = "";
+    ["own", "attack", "opp"].forEach(function (kind) {
+      if (arrows.some(function (a) { return a.kind === kind; })) {
+        html += '<span class="' + kind + '"><i></i>' + names[kind] + "</span>";
+      }
+    });
+    return '<p class="arrow-legend">' + html + "</p>";
   }
 
   function setOff(btn, off) {
@@ -297,6 +368,8 @@ window.Play = (function () {
     if (phase === "playing") {
       if (mode.guided) {
         // aprendiendo: la jugada ya está marcada en el tablero
+      } else if (mode.playingNote) {
+        html += '<span class="hint-note">' + mode.playingNote + "</span>";
       } else if (mode.allowHint) {
         html += '<button class="btn ghost" data-act="hint">Pista</button>';
         html += '<button class="btn ghost" data-act="solution">Ver solución</button>';
@@ -304,13 +377,20 @@ window.Play = (function () {
         html += '<span class="hint-note">Sin ayudas en este modo</span>';
       }
     } else if (phase === "solved") {
-      html += '<button class="btn primary wide" data-act="next">Siguiente</button>';
+      html += '<button class="btn primary wide" data-act="next">' +
+        (lastOutcome.nextLabel || "Siguiente") + "</button>";
     }
     els.actions.innerHTML = html;
 
-    if (mode.guided) { /* aprendiendo: la caja es de las notas, la rellena renderMoves */ }
+    if (mode.noteAt) { /* aprendiendo: la caja es de las notas, la rellena renderMoves */ }
     else if (phase === "solved" && puzzle) renderPuzzleInfo(puzzle);
     else els.info.innerHTML = "";
+
+    // el plan y sus flechas, al terminar del todo: no entre pasada y pasada
+    if (phase === "solved" && puzzle && puzzle.line && lastOutcome.plan !== false) {
+      planFor = puzzle;
+      showPlan(player.atLive);
+    }
 
     els.actions.querySelectorAll("[data-act]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -331,7 +411,8 @@ window.Play = (function () {
       els.info.innerHTML =
         '<div class="chips"><span class="chip">' + puzzle.line.name + "</span>" +
         '<span class="chip muted">' + puzzle.opening.name + "</span></div>" +
-        (plan ? '<p class="line-plan">' + plan + "</p>" : "");
+        (plan ? '<p class="line-plan">' + plan + "</p>" : "") +
+        arrowLegend(window.Openings.planArrows(puzzle.line));
       return;
     }
     var interesting = window.THEMES.ranked(puzzle.themes).slice(0, 3);
@@ -395,6 +476,7 @@ window.Play = (function () {
   function finish(summary, headline) {
     if (over) return;
     over = true;
+    stopHints();
     if (clock) { window.clearInterval(clock); clock = null; }
     if (pending) { window.clearTimeout(pending); pending = null; }
     player.stop();

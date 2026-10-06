@@ -69,6 +69,7 @@ window.Board = (function () {
       check: null,         // casilla del rey en jaque
       mate: false,         // ...y si además es mate, que se vea distinto
       guide: null,         // [origen, destino] de la jugada que hay que hacer (aprender)
+      arrows: [],          // flechas numeradas del plan: [{ from, to, kind }]
       interactive: false,
       coords: options.coords !== false,
       pieceSet: options.pieces || "cburnett"
@@ -82,11 +83,13 @@ window.Board = (function () {
       '<div class="board-squares"></div>' +
       '<div class="board-marks"></div>' +
       '<div class="board-pieces"></div>' +
+      '<svg class="board-arrows" viewBox="0 0 8 8" aria-hidden="true"></svg>' +
       '<div class="board-flash"></div>' +
       '<div class="board-promo" hidden></div>';
     var squaresLayer = root.querySelector(".board-squares");
     var marksLayer = root.querySelector(".board-marks");
     var piecesLayer = root.querySelector(".board-pieces");
+    var arrowsLayer = root.querySelector(".board-arrows");
     // Capa aparte para los destellos de acierto/fallo/pista: viven más tiempo
     // que una jugada y `renderMarks()` reconstruye `marksLayer` por completo
     // en cada jugada (incluida la que ellos mismos acaban de motivar), así que
@@ -212,6 +215,52 @@ window.Board = (function () {
         }
       }
       marksLayer.appendChild(frag);
+    }
+
+    /**
+     * Flechas del plan, al estilo de ChessBase: trazo grueso y liso, en L
+     * para el caballo (primero el tramo largo), con el número de orden en
+     * el arranque. Todo en unidades de casilla (el viewBox es 8×8), así que
+     * escala solo con el tablero.
+     */
+    function renderArrows() {
+      var START = 0.3, SHAFT = 0.2, HEAD_W = 0.5, HEAD_L = 0.38;
+      var shafts = "", badges = "";
+      function n(v) { return Math.round(v * 1000) / 1000; }
+
+      state.arrows.forEach(function (a, i) {
+        var pa = viewPos(a.from), pb = viewPos(a.to);
+        var A = [pa[0] + 0.5, pa[1] + 0.5], B = [pb[0] + 0.5, pb[1] + 0.5];
+        var dx = B[0] - A[0], dy = B[1] - A[1];
+        var knight = Math.abs(dx) + Math.abs(dy) === 3 && dx !== 0 && dy !== 0;
+        // el codo del caballo: se recorre primero el tramo de dos casillas
+        var C = knight ? (Math.abs(dy) > Math.abs(dx) ? [A[0], B[1]] : [B[0], A[1]]) : null;
+
+        var first = C || B;
+        var len1 = Math.sqrt(Math.pow(first[0] - A[0], 2) + Math.pow(first[1] - A[1], 2));
+        var S = [A[0] + (first[0] - A[0]) / len1 * START, A[1] + (first[1] - A[1]) / len1 * START];
+
+        var prev = C || S;
+        var len2 = Math.sqrt(Math.pow(B[0] - prev[0], 2) + Math.pow(B[1] - prev[1], 2));
+        var u = [(B[0] - prev[0]) / len2, (B[1] - prev[1]) / len2];
+        var base = [B[0] - u[0] * HEAD_L, B[1] - u[1] * HEAD_L];
+        var px = -u[1] * HEAD_W / 2, py = u[0] * HEAD_W / 2;
+
+        shafts += '<g class="arrow ' + a.kind + '">' +
+          '<path d="M' + n(S[0]) + " " + n(S[1]) +
+            (C ? " L" + n(C[0]) + " " + n(C[1]) : "") +
+            // un pelo dentro de la punta, para que no quede rendija entre ambas
+            " L" + n(base[0] + u[0] * 0.02) + " " + n(base[1] + u[1] * 0.02) +
+            '" stroke-width="' + SHAFT + '"/>' +
+          '<polygon points="' + n(B[0]) + "," + n(B[1]) + " " +
+            n(base[0] + px) + "," + n(base[1] + py) + " " +
+            n(base[0] - px) + "," + n(base[1] - py) + '"/></g>';
+        badges += '<g class="arrow-num ' + a.kind + '">' +
+          '<circle cx="' + n(S[0]) + '" cy="' + n(S[1]) + '" r="0.17"/>' +
+          '<text x="' + n(S[0]) + '" y="' + n(S[1]) + '" dy="0.35em">' + (i + 1) + "</text></g>";
+      });
+      // los números van al final para que ninguna flecha los tape
+      arrowsLayer.innerHTML = shafts + badges;
     }
 
     // --- interacción ----------------------------------------------------
@@ -499,6 +548,7 @@ window.Board = (function () {
         drawCoords();
         for (var sq in els) place(els[sq], sq);
         renderMarks();
+        renderArrows();
       },
 
       flip: function () {
@@ -523,13 +573,20 @@ window.Board = (function () {
         renderMarks();
       },
 
+      /** Flechas numeradas del plan (lista vacía o null para quitarlas). */
+      setArrows: function (list) {
+        state.arrows = list || [];
+        renderArrows();
+      },
+
       /** Insignia de acierto/fallo/pista sobre una casilla, ajena a renderMarks(). */
       flash: function (sq, kind) {
         var el = document.createElement("div");
         el.className = "mark flash-" + kind;
         place(el, sq);
         flashLayer.appendChild(el);
-        window.setTimeout(function () { el.remove(); }, 700);
+        // el destino de una pista parpadea a contratiempo: dura un poco más
+        window.setTimeout(function () { el.remove(); }, kind === "hint-to" ? 1100 : 700);
       },
 
       /** Quita cualquier insignia pendiente. Hay que llamarlo al cargar un

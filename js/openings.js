@@ -131,6 +131,15 @@ window.Openings = (function () {
     return out;
   }
 
+  /** Flechas del plan de una línea, listas para el tablero (ver data/openings.js). */
+  function planArrows(line) {
+    return (line.arrows || []).map(function (a) {
+      var kind = a.charAt(0) === "x" ? "attack" : a.charAt(0) === "o" ? "opp" : "own";
+      var sq = kind === "own" ? a : a.slice(1);
+      return { from: sq.slice(0, 2), to: sq.slice(2, 4), kind: kind };
+    });
+  }
+
   /** Línea -> el "puzzle" que entiende PuzzlePlayer. */
   function toPuzzle(item) {
     var game = new window.Chess();
@@ -166,15 +175,27 @@ window.Openings = (function () {
   }
 
   /**
-   * Aprender: la línea se juega guiada (se marca la jugada a hacer y se
-   * explica cada una). Sin `lineId` va encadenando las siguientes por
-   * aprender; con él, solo esa línea.
+   * Aprender una línea tiene hasta tres pasadas:
+   *
+   *   0. guiada: se marca la jugada a hacer y se explica cada una;
+   *   1. de memoria ("ahora inténtalo tú"): sin marca. Si el jugador se
+   *      atasca, play.js le va destapando la jugada (HINT_AFTER);
+   *   2. otra de memoria, solo si la anterior no salió limpia (con alguna
+   *      pista o algún fallo).
+   *
+   * Sacarla de memoria nada más verla es lo que la fija; por eso la línea no
+   * cuenta como aprendida hasta terminar las pasadas. Sin `lineId` va
+   * encadenando las siguientes por aprender; con él, solo esa línea.
    */
+  var HINT_AFTER = [10, 15];   // segundos sin mover: se marca la pieza; y después, también el destino
+
   function learn(lineId) {
     var current = null;
     var count = 0;
     var single = lineId ? findLine(lineId) : null;
     var served = false;
+    var stage = 0;         // pasada que se está jugando (ver arriba)
+    var repeat = false;    // la siguiente pasada es de la misma línea
 
     return {
       id: "openings-learn",
@@ -184,33 +205,50 @@ window.Openings = (function () {
       allowRetry: true,
       allowHint: false,
       autoNext: false,
-      guided: true,
+      get guided() { return stage === 0; },
+      get hintAfter() { return stage === 0 ? null : HINT_AFTER; },
+      get playingNote() {
+        return stage === 0 ? "" : "De memoria. Si te atascas, se irá marcando la jugada.";
+      },
       notes: true,
       lives: 0,
       timed: 0,
       affectsRating: false,
 
       next: function () {
-        if (single) {
+        if (repeat) {
+          repeat = false;
+        } else if (single) {
           if (served) return null;
           served = true;
           current = single;
+          stage = 0;
         } else {
           current = nextToLearn();
+          stage = 0;
         }
         return current ? toPuzzle(current) : null;
       },
 
       loadText: function (puzzle) {
-        return puzzle.opening.name + " · " + puzzle.line.name;
+        return stage === 0 ? puzzle.opening.name + " · " + puzzle.line.name
+          : stage === 1 ? "Ahora inténtalo tú" : "Otra vez, de memoria";
       },
 
       noteAt: noteAt,
 
       result: function (res) {
+        if (stage === 0) {
+          stage = 1; repeat = true;
+          return { text: "Ahora inténtalo tú", nextLabel: "Inténtalo tú", plan: false };
+        }
+        if (stage === 1 && !res.clean) {
+          stage = 2; repeat = true;
+          return { text: "Casi. Una vez más, de memoria", nextLabel: "Otra vez", plan: false };
+        }
         markLearned(res.puzzle.line.id);
         count++;
-        return { text: "¡Línea completa!" };
+        return { text: res.clean ? "¡Línea aprendida!" : "Línea aprendida. Hoy la repasarás otra vez" };
       },
 
       hud: function () {
@@ -314,6 +352,7 @@ window.Openings = (function () {
     grade: grade,
     progress: progress,
     gaps: gaps,
+    planArrows: planArrows,
     learn: learn,
     review: review,
     NEW_PER_DAY: NEW_PER_DAY,

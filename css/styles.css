@@ -42,6 +42,10 @@
   --hl-sel-light:  rgba(255, 200, 0, 0.64);
   --hl-sel-dark:   rgba(255, 240, 120, 0.72);
 
+  --arrow-own: #fbb02d;      /* flechas del plan: lo que juegas tú */
+  --arrow-attack: #e0453a;   /* una pieza tuya que presiona esa casilla */
+  --arrow-opp: #4f8fd6;      /* lo que suele contestar el rival */
+
   --radius: 16px;
   --radius-sm: 11px;
   --pad: 16px;
@@ -896,6 +900,16 @@ html.standalone, html.standalone body { height: 100vh; }
 .with-notes.guided .puzzle-info { min-height: 74px; }   /* aprender */
 .with-notes .chips { justify-content: flex-start; }
 .line-plan { margin: 6px 0 0; }
+.arrow-legend {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center;
+  margin: 8px 0 0;
+  font-size: 11.5px; color: var(--text-faint);
+}
+.arrow-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.arrow-legend i { width: 14px; height: 5px; border-radius: 3px; background: currentColor; }
+.arrow-legend .own i { color: var(--arrow-own); }
+.arrow-legend .attack i { color: var(--arrow-attack); }
+.arrow-legend .opp i { color: var(--arrow-opp); }
 .chips {
   display: flex; gap: 6px;
   justify-content: center;
@@ -1034,6 +1048,29 @@ html.standalone, html.standalone body { height: 100vh; }
 .coord.on-light { color: var(--sq-dark); }
 .coord.on-dark { color: var(--sq-light); }
 
+/* --- flechas del plan (aperturas) ------------------------------------------
+   Naranja: lo que juegas tú. Rojo: una pieza tuya que presiona esa casilla.
+   Azul: lo que suele contestar el rival. */
+.board-arrows {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 4;                     /* sobre las piezas, bajo la que se arrastra */
+  pointer-events: none;
+  animation: fade .25s ease;
+}
+.arrow { opacity: .93; }
+.arrow path { fill: none; stroke: currentColor; stroke-linejoin: miter; stroke-linecap: butt; }
+.arrow polygon { fill: currentColor; }
+.arrow.own, .arrow-num.own { color: var(--arrow-own); }
+.arrow.attack, .arrow-num.attack { color: var(--arrow-attack); }
+.arrow.opp, .arrow-num.opp { color: var(--arrow-opp); }
+.arrow-num circle { fill: #1b1d22; stroke: currentColor; stroke-width: .035; }
+.arrow-num text {
+  fill: #fff; font-size: .22px; font-weight: 800;
+  text-anchor: middle;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 .piece, .mark, .promo-choice {
   position: absolute;
   top: 0; left: 0;
@@ -1151,6 +1188,16 @@ html.standalone, html.standalone body { height: 100vh; }
   content: ""; position: absolute; inset: 0;
   border-radius: 4px;
   animation: pulse .7s ease-out forwards;
+  box-shadow: inset 0 0 0 5px #6ba8e8;
+}
+
+/* Pista de la jugada entera: el destino parpadea a contratiempo del origen,
+   para que se lea "de aquí… a aquí" y no dos casillas sueltas. */
+.mark.flash-hint-to { z-index: 6; }
+.mark.flash-hint-to::after {
+  content: ""; position: absolute; inset: 0;
+  border-radius: 4px;
+  animation: pulse .7s ease-out .35s both;
   box-shadow: inset 0 0 0 5px #6ba8e8;
 }
 

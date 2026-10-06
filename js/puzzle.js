@@ -278,6 +278,14 @@ window.PuzzlePlayer = (function () {
       if (handlers.onHint) handlers.onHint();
     }
 
+    /** Marca la jugada entera: la pieza y, a contratiempo, la casilla de destino. */
+    function hintMove() {
+      if (finished || !puzzle || ply >= puzzle.moves.length) return;
+      usedHint = true;
+      board.flash(puzzle.moves[ply].slice(0, 2), "hint");
+      board.flash(puzzle.moves[ply].slice(2, 4), "hint-to");
+    }
+
     /** Reproduce lo que queda de solución y da el puzzle por fallado. */
     function reveal() {
       if (finished || !puzzle) return;
@@ -321,6 +329,7 @@ window.PuzzlePlayer = (function () {
       load: load,
       onUserMove: onUserMove,
       hint: hint,
+      hintMove: hintMove,
       reveal: reveal,
       fail: fail,
       back: function () { goTo(viewAt - 1); },

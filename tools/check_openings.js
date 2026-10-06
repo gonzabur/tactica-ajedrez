@@ -4,7 +4,9 @@
  *   1. que todas las jugadas son legales (chess.js),
  *   2. qué nombre le da la base de aperturas de Lichess a cada línea,
  *   3. la evaluación de Stockfish (local) tras cada jugada, y avisa si una
- *      jugada NUESTRA empeora mucho la posición.
+ *      jugada NUESTRA empeora mucho la posición,
+ *   4. las flechas del plan (`arrows`): que cada una es jugable y cuánto
+ *      pierde frente a la mejor jugada de esa posición.
  *
  *   node tools/check_openings.js [id-de-apertura]
  *   node tools/check_openings.js --pos "e4 e5 Nf3" […]   (3 mejores jugadas)
@@ -141,6 +143,77 @@ function fmt(cp) {
   return (cp >= 0 ? "+" : "") + (cp / 100).toFixed(2);
 }
 
+/** Mejor jugada del motor en una posición (uci), con caché. */
+async function bestMove(fen) {
+  const key = "bm:" + epd(fen);
+  if (key in evalCache.data) return evalCache.data[key];
+  if (!engine) startEngine();
+  const lines = await engine.analyse(fen, 1);
+  const value = lines.length ? lines[0].pv[0] : null;
+  evalCache.data[key] = value;
+  evalCache.save();
+  return value;
+}
+
+/**
+ * Flechas del plan, como partida de verdad: se juegan en su orden y, entre
+ * dos jugadas del mismo bando, el otro contesta con la mejor jugada del
+ * motor. De cada flecha se mide cuánto pierde frente a la mejor jugada de
+ * esa posición. Es una prueba dura a propósito: un plan es un esquema, y el
+ * rival del motor hace justo lo que más lo estorba. Por eso un ⚠ aquí no
+ * cuenta como error: es para mirarlo a mano. Lo normal es que el motor haya
+ * creado una amenaza (atacar una pieza, cambiar) que la flecha siguiente
+ * ignora; lo que sí hay que corregir es un ⚠ en la PRIMERA jugada propia, o
+ * una respuesta del rival marcada como floja sin que la nota lo diga.
+ */
+async function checkArrows(op, line, game) {
+  let problems = 0;
+  const opp = op.color === "w" ? "b" : "w";
+  const g = new Chess(game.fen());
+  const out = [];
+
+  for (let i = 0; i < (line.arrows || []).length; i++) {
+    const a = line.arrows[i];
+    const kind = a[0] === "x" ? "attack" : a[0] === "o" ? "opp" : "own";
+    const sq = kind === "own" ? a : a.slice(1);
+    const from = sq.slice(0, 2), to = sq.slice(2, 4);
+    if (kind === "attack") {
+      const p = g.get(from);
+      // la legalidad de la flecha la comprueba tests.html sobre la posición
+      // final; aquí el rival del motor puede haber cambiado ya esa pieza
+      if (!p || p.color !== op.color) out.push(`${i + 1} (presión ${from}→${to}: esa pieza ya no está)`);
+      else out.push(`${i + 1} presión ${from}→${to}`);
+      continue;
+    }
+    const side = kind === "opp" ? opp : op.color;
+    let filler = "";
+    if (g.turn() !== side) {
+      // le toca al otro: juega lo mejor que tenga
+      const u = await bestMove(g.fen());
+      const mv = u && g.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] });
+      if (!mv) { out.push(`${i + 1} (sin respuesta del motor)`); break; }
+      filler = `[${mv.san}] `;
+    }
+    const best = await evaluate(g.fen());
+    const mv = g.move({ from, to, promotion: "q" });
+    if (!mv) {
+      out.push(`${filler}${i + 1} (${a} ya no se puede tras esa respuesta)`);
+      break;
+    }
+    const got = await evaluate(g.fen());
+    const loss = (best - got) * (side === "w" ? 1 : -1);
+    let text = `${filler}${i + 1} ${kind === "opp" ? "rival " : ""}${mv.san} ${fmt(got)}`;
+    if (loss > DROP) {
+      if (kind === "own") text += ` ⚠ pierde ${(loss / 100).toFixed(2)}`;
+      else text += ` (floja: ${(loss / 100).toFixed(2)})`;
+    }
+    out.push(text);
+  }
+  if (!line.arrows || !line.arrows.length) { out.push("✗ sin flechas"); problems++; }
+  console.log("  plan: " + out.join("  ·  "));
+  return problems;
+}
+
 async function main() {
   if (process.argv[2] === "--pos") {
     await probe(process.argv.slice(3));
@@ -192,6 +265,7 @@ async function main() {
           if (+k >= line.moves.length) { console.log(`  ✗ nota en la jugada ${k}, que no existe`); problems++; }
         }
       }
+      problems += await checkArrows(op, line, g);
       console.log(`  Lichess: ${lastName || "(sin nombre)"}`);
     }
   }

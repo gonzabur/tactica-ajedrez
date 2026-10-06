@@ -7,6 +7,13 @@
  * las jugadas importantes: la clave es el índice de la jugada en `moves`
  * (0 = 1.e4, 1 = 1…e5, 2 = 2.Nf3…).
  *
+ * `arrows` son las flechas del plan que se dibujan al terminar la línea, en
+ * el orden en que se numeran (como mucho cuatro). Cada una es casilla de
+ * origen y de destino sobre la posición final: "f1e1" es una jugada propia,
+ * con "o" delante ("od6g3") una jugada del rival y con "x" ("xc4f7") una
+ * pieza propia que presiona esa casilla sin moverse. Las jugadas se encadenan:
+ * "b1d2", "d2f1" es el mismo caballo dando dos saltos.
+ *
  * Comprobación (legalidad, nombres y motor): node tools/check_openings.js
  */
 window.OPENINGS = [
@@ -25,6 +32,7 @@ window.OPENINGS = [
         name: "Giuoco Pianissimo",
         idea: "La línea principal: c3 y d3 para montar un centro sólido y luego enrocar.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "c3", "Nf6", "d3", "d6", "O-O"],
+        arrows: ["f1e1", "a2a4", "b1d2", "d2f1"],
         notes: {
           0: "Ocupa el centro y abre paso a la dama y al alfil de casillas blancas.",
           2: "Desarrolla atacando el peón de e5: el negro tiene que defenderlo.",
@@ -39,6 +47,7 @@ window.OPENINGS = [
         name: "Dos Caballos con d3",
         idea: "Si el negro saca el caballo en vez del alfil, no te compliques: d3 y el mismo plan.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6", "d3", "Be7", "O-O", "O-O", "Re1"],
+        arrows: ["c2c3", "h2h3", "b1d2", "xc4f7"],
         notes: {
           5: "El negro ataca e4. Aquí existe 4.Ng5, atacando f7, que lleva a líneas muy afiladas (como el famoso Hígado Frito) que hay que saberse de memoria.",
           6: "Defiende e4 y mantiene la partida tranquila: el mismo tipo de posición que en la línea principal.",
@@ -50,6 +59,7 @@ window.OPENINGS = [
         name: "Dos Caballos con …Bc5",
         idea: "Si el negro saca después el alfil a c5, se vuelve a la línea principal.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6", "d3", "Bc5", "c3"],
+        arrows: ["e1g1", "f1e1", "b1d2", "xc4f7"],
         notes: {
           7: "El negro saca el alfil a su casilla activa.",
           8: "Con c3 llegamos a la misma posición de la línea principal por otro orden de jugadas: el plan es idéntico."
@@ -60,6 +70,7 @@ window.OPENINGS = [
         name: "Si el negro juega 2…d6 (Filidor)",
         idea: "El negro defiende e5 con un peón en vez de con el caballo. Ocupa el centro con d4.",
         moves: ["e4", "e5", "Nf3", "d6", "d4", "exd4", "Nxd4", "Nf6", "Nc3", "Be7", "Be2", "O-O", "O-O"],
+        arrows: ["c1e3", "of8e8", "d1d2", "a1d1"],
         notes: {
           3: "La Filidor: sólida pero algo pasiva, encierra al alfil de e7.",
           4: "Aprovecha que el negro no presiona d4 y reta el centro enseguida.",
@@ -73,6 +84,7 @@ window.OPENINGS = [
         name: "Si el negro juega 2…Nf6 (Petrov)",
         idea: "El negro contraataca e4 en vez de defender e5. Toma en e5 y no copies jugadas.",
         moves: ["e4", "e5", "Nf3", "Nf6", "Nxe5", "d6", "Nf3", "Nxe4", "d4", "d5", "Bd3"],
+        arrows: ["xd3e4", "e1g1", "c2c4", "f1e1"],
         notes: {
           3: "La Petrov: en vez de defender e5, ataca e4.",
           4: "Toma el peón. El negro no puede copiar con …Nxe4 (mira la línea de la trampa).",
@@ -87,6 +99,7 @@ window.OPENINGS = [
         name: "Petrov: la trampa de copiar",
         idea: "Si el negro toma en e4 enseguida, Qe2 le pone en apuros: gana la dama si se descuida, y si no, un peón.",
         moves: ["e4", "e5", "Nf3", "Nf6", "Nxe5", "Nxe4", "Qe2", "Qe7", "Qxe4", "d6", "d4"],
+        arrows: ["od6e5", "d4e5", "b1c3", "c1f4"],
         notes: {
           5: "Una imprecisión: copiar la jugada del blanco. No pierde nada si el negro se defiende bien, pero es muy fácil equivocarse.",
           6: "Clava el caballo de e4 contra el rey. Si el negro lo retira con 4…Nf6??, 5.Nc6+ es jaque descubierto de la dama y el caballo ataca a la dama negra: se pierde la dama.",
@@ -114,6 +127,7 @@ window.OPENINGS = [
         name: "Contra …d5, …e6 y …c5",
         idea: "El esquema completo: triángulo de peones c3-d4-e3 y el alfil de f4 fuera de la cadena.",
         moves: ["d4", "d5", "Bf4", "Nf6", "e3", "e6", "Nf3", "c5", "c3", "Nc6", "Nbd2", "Bd6", "Bg3"],
+        arrows: ["od6g3", "h2g3", "f1d3", "f3e5"],
         notes: {
           0: "Ocupa el centro. A partir de aquí, casi siempre las mismas jugadas.",
           2: "La seña de identidad: el alfil sale antes de jugar e3, para que no se quede encerrado detrás de los peones.",
@@ -129,6 +143,7 @@ window.OPENINGS = [
         name: "Contra un …Bd6 temprano",
         idea: "El negro quiere cambiar tu alfil bueno. Se retira a g3 y el plan sigue igual.",
         moves: ["d4", "d5", "Bf4", "Nf6", "e3", "e6", "Nf3", "Bd6", "Bg3", "O-O", "Bd3"],
+        arrows: ["xd3h7", "e1g1", "b1d2", "c2c3"],
         notes: {
           7: "El negro planta el alfil frente al tuyo para cambiarlo.",
           8: "A g3: el alfil sigue en su diagonal. Si el negro cambia con …Bxg3, hxg3 abre la columna h para tu torre y te deja un buen centro.",
@@ -140,6 +155,7 @@ window.OPENINGS = [
         name: "Contra …Qb6 (ataque a b2)",
         idea: "Al sacar el alfil a f4, b2 se queda sin defensa. La dama a b3 lo defiende y ofrece cambiar.",
         moves: ["d4", "d5", "Bf4", "c5", "e3", "Nc6", "c3", "Qb6", "Qb3", "c4", "Qc2"],
+        arrows: ["xc2e4", "b1d2", "g1f3", "e3e4"],
         notes: {
           3: "El negro presiona d4 desde el principio.",
           7: "La amenaza típica contra la Londres: el alfil de c1 ya no defiende b2 y la dama negra lo ataca.",
@@ -153,6 +169,7 @@ window.OPENINGS = [
         name: "Contra el fianchetto (…g6 y …Bg7)",
         idea: "Contra el esquema de la India de rey: mismo desarrollo, pero juega h3 antes de enrocar.",
         moves: ["d4", "Nf6", "Bf4", "g6", "e3", "Bg7", "Nf3", "O-O", "Be2", "d6", "h3"],
+        arrows: ["of6h5", "f4h2", "e1g1"],
         notes: {
           3: "El negro coloca el alfil en g7, en la gran diagonal: es el esquema de la India de rey.",
           8: "Desarrollo sencillo. (Bd3 también vale.)",
@@ -178,6 +195,7 @@ window.OPENINGS = [
         name: "Gambito de dama declinado (2…e6)",
         idea: "El negro sostiene d5 con …e6. Desarrollo clásico con el alfil a g5, que clava el caballo.",
         moves: ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Bg5", "Be7", "e3", "O-O", "Nf3"],
+        arrows: ["xg5f6", "a1c1", "f1d3", "c4d5"],
         notes: {
           2: "Ataca d5 desde el flanco. Si el negro toma, recuperarás el peón.",
           3: "La respuesta más sólida: sostiene d5 con otro peón.",
@@ -192,6 +210,7 @@ window.OPENINGS = [
         name: "Declinado: la trampa del elefante",
         idea: "Si el negro juega …Nbd7, no tomes en d5 con el caballo: pierdes una pieza.",
         moves: ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Bg5", "Nbd7", "cxd5", "exd5", "e3"],
+        arrows: ["xg5f6", "f1d3", "g1f3", "e1g1"],
         notes: {
           7: "El caballo tapa la dama… y prepara una trampa.",
           8: "Normal: cambia en d5 para aclarar el centro.",
@@ -204,6 +223,7 @@ window.OPENINGS = [
         name: "Defensa eslava (2…c6)",
         idea: "El negro sostiene d5 con …c6 para sacar su alfil a f5. Juega e3 y persigue el alfil con Nh4.",
         moves: ["d4", "d5", "c4", "c6", "Nf3", "Nf6", "e3", "Bf5", "Nc3", "e6", "Nh4"],
+        arrows: ["xh4f5", "of5g6", "h4g6"],
         notes: {
           3: "La Eslava: sostiene d5 sin encerrar su alfil de casillas blancas.",
           6: "Defiende c4 con el alfil de f1: si el negro toma en c4, lo recuperas enseguida.",
@@ -216,6 +236,7 @@ window.OPENINGS = [
         name: "Gambito de dama aceptado (2…dxc4)",
         idea: "El negro toma el peón. Desarrolla con calma y recupéralo con el alfil.",
         moves: ["d4", "d5", "c4", "dxc4", "Nf3", "Nf6", "e3", "e6", "Bxc4", "c5", "O-O"],
+        arrows: ["d1e2", "f1d1", "e3e4"],
         notes: {
           3: "El negro acepta el peón, pero a cambio deja el centro a las blancas.",
           4: "Sin prisa: el peón de c4 no se puede mantener.",
@@ -229,6 +250,7 @@ window.OPENINGS = [
         name: "Contragambito Albin (2…e5)",
         idea: "Un contragambito agresivo. Toma el peón y no juegues e3: hay una trampa famosa.",
         moves: ["d4", "d5", "c4", "e5", "dxe5", "d4", "Nf3", "Nc6", "g3"],
+        arrows: ["f1g2", "b1d2", "e1g1"],
         notes: {
           3: "El Albin: el negro entrega un peón para ganar espacio.",
           4: "Toma el peón.",
@@ -257,6 +279,7 @@ window.OPENINGS = [
         idea: "La línea principal: enroca, defiende e4 con Re1 y prepara d4 con c3 y h3.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O", "Be7",
                 "Re1", "b5", "Bb3", "d6", "c3", "O-O", "h3"],
+        arrows: ["d2d4", "b1d2", "d2f1", "f1g3"],
         notes: {
           4: "La Española: el alfil presiona al caballo que defiende e5. Todavía no gana el peón (tras Bxc6 y Nxe5 el negro lo recupera con …Qd4), pero la presión no desaparece.",
           5: "El negro pregunta al alfil qué quiere hacer.",
@@ -274,6 +297,7 @@ window.OPENINGS = [
         name: "Berlinesa (3…Nf6) con d3",
         idea: "El negro ataca e4 de entrada. Defiéndelo con d3 y juega el mismo esquema, sin entrar en el final de la Berlinesa.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "Nf6", "d3", "Bc5", "c3", "O-O", "O-O", "d6", "Nbd2"],
+        arrows: ["f1e1", "d2f1", "f1g3", "h2h3"],
         notes: {
           5: "La Berlinesa: una de las defensas más sólidas que existen.",
           6: "Defiende e4 y conserva todas las piezas. La alternativa 4.O-O Nxe4 lleva a un final sin damas muy teórico, famoso por lo difícil que es ganarlo.",
@@ -287,6 +311,7 @@ window.OPENINGS = [
         idea: "Si el negro se come el peón de e4, abre el centro con d4 y lo recuperas con ventaja de espacio.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O", "Nxe4",
                 "d4", "b5", "Bb3", "d5", "dxe5", "Be6", "c3"],
+        arrows: ["b3c2", "xc2e4", "b1d2"],
         notes: {
           9: "La Abierta: el negro acepta el peón que dejaste sin defender.",
           10: "Abre el centro mientras el rey negro sigue en e8. Re1 también recupera el peón, pero d4 da más.",
@@ -300,6 +325,7 @@ window.OPENINGS = [
         name: "Steinitz diferida (4…d6) y el Arca de Noé",
         idea: "Contra …a6 y …d6, prepara d4 con c3: así esquivas la trampa más famosa de la Española.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "d6", "c3", "Bd7", "d4", "g6", "O-O"],
+        arrows: ["f1e1", "b1d2", "d2f1"],
         notes: {
           7: "El negro defiende e5 con el peón. Su caballo queda clavado por tu alfil.",
           8: "Primero c3. Si juegas d4 ya, viene el Arca de Noé: 5.d4 b5 6.Bb3 Nxd4 7.Nxd4 exd4 y, si tomas con la dama (8.Qxd4??), los peones avanzan con …c5 y …c4 y encierran al alfil de b3.",
@@ -313,6 +339,7 @@ window.OPENINGS = [
         name: "Steinitz (3…d6)",
         idea: "Si el negro defiende e5 con el peón enseguida, ocupa el centro con d4 sin preparar nada.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "d6", "d4", "Bd7", "Nc3", "exd4", "Nxd4"],
+        arrows: ["e1g1", "xb5c6", "f1e1"],
         notes: {
           5: "La Steinitz: sólida pero pasiva, muy frecuente entre aficionados. El caballo de c6 queda clavado.",
           6: "Aquí no hay Arca de Noé, porque el negro no ha jugado …a6 y no tiene …b5. Así que d4 directo, amenazando ganar el peón de e5.",
@@ -326,6 +353,7 @@ window.OPENINGS = [
         name: "Clásica (3…Bc5)",
         idea: "El negro saca el alfil a c5. Prepara d4 con c3 y avanza ganando un tiempo sobre ese alfil.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "Bc5", "c3", "Nf6", "O-O", "O-O", "d4", "Bb6", "Re1"],
+        arrows: ["h2h3", "b1d2", "d2f1"],
         notes: {
           5: "Desarrollo natural, como en la Italiana, pero el alfil será un blanco para tu peón d.",
           6: "Prepara d4.",
@@ -339,6 +367,7 @@ window.OPENINGS = [
         name: "Gambito Schliemann (3…f5)",
         idea: "El negro ataca tu centro por el flanco. No aceptes el lío: d3, recaptura con el peón y enroca.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "f5", "d3", "fxe4", "dxe4", "Nf6", "O-O"],
+        arrows: ["of6e4", "d1e2", "xe2e4"],
         notes: {
           5: "El Schliemann (o Jaenisch): agresivo y lleno de trampas. Se ve mucho a nivel de club.",
           6: "La respuesta tranquila: sostiene e4 y evita las líneas afiladas de 4.Nc3.",
@@ -366,6 +395,7 @@ window.OPENINGS = [
         name: "Variante del avance (3.e5)",
         idea: "El blanco gana espacio con e5. Saca el alfil a f5 antes de …e6 y ataca la cadena con …c5.",
         moves: ["e4", "c6", "d4", "d5", "e5", "Bf5", "Nf3", "e6", "Be2", "c5"],
+        arrows: ["xc5d4", "b8c6", "d8b6", "xc6d4"],
         notes: {
           1: "Prepara …d5 sin tapar al alfil de c8.",
           3: "Pelea por el centro: el peón de e4 está atacado.",
@@ -379,6 +409,7 @@ window.OPENINGS = [
         name: "Variante clásica (3.Nc3 dxe4)",
         idea: "Tomas en e4, sacas el alfil a f5 y, cuando te lo persigan, a g6. Ojo al avance h4-h5.",
         moves: ["e4", "c6", "d4", "d5", "Nc3", "dxe4", "Nxe4", "Bf5", "Ng3", "Bg6", "h4", "h6"],
+        arrows: ["oh4h5", "g6h7", "b8d7", "g8f6"],
         notes: {
           5: "Cambia en e4: el blanco no puede mantener su peón.",
           7: "El alfil sale con tiempo, atacando al caballo.",
@@ -392,6 +423,7 @@ window.OPENINGS = [
         name: "Variante del cambio (3.exd5)",
         idea: "Estructura simétrica. Desarrolla con naturalidad y saca el alfil a g4.",
         moves: ["e4", "c6", "d4", "d5", "exd5", "cxd5", "Bd3", "Nc6", "c3", "Nf6", "Bf4", "Bg4"],
+        arrows: ["od1b3", "d8d7", "e7e6", "f8d6"],
         notes: {
           5: "Recaptura con el peón de c: los dos bandos quedan con la misma estructura.",
           7: "Desarrollo y presión sobre d4.",
@@ -404,6 +436,7 @@ window.OPENINGS = [
         name: "Ataque Panov (4.c4)",
         idea: "El blanco ataca d5 con c4 para jugar con un peón aislado. Desarrollo rápido y bloqueo de d5.",
         moves: ["e4", "c6", "d4", "d5", "exd5", "cxd5", "c4", "Nf6", "Nc3", "e6", "Nf3", "Be7"],
+        arrows: ["e8g8", "b8c6", "xc6d4"],
         notes: {
           6: "El blanco busca juego activo a cambio de que su peón de d4 acabe aislado.",
           7: "Defiende d5 con una pieza.",
@@ -416,6 +449,7 @@ window.OPENINGS = [
         name: "Dos caballos (2.Nc3 y 3.Nf3)",
         idea: "El blanco desarrolla caballos sin jugar d4. Saca el alfil a g4 y cámbialo por el caballo.",
         moves: ["e4", "c6", "Nc3", "d5", "Nf3", "Bg4", "h3", "Bxf3", "Qxf3", "e6"],
+        arrows: ["g8f6", "f8e7", "e8g8"],
         notes: {
           5: "Clava el caballo, que es el que defiende e5 y d4.",
           6: "El blanco pregunta al alfil.",
@@ -443,12 +477,13 @@ window.OPENINGS = [
         name: "Contra la Italiana (3.Bc4)",
         idea: "Saca el alfil a c5, igual que el blanco: posición equilibrada y sin trampas raras.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "c3", "Nf6", "d3", "d6"],
+        arrows: ["e8g8", "a7a6", "c5a7"],
         notes: {
           1: "Pelea por el centro con la misma jugada.",
           3: "Defiende e5 desarrollando.",
           5: "El alfil a su mejor diagonal, apuntando a f2, el punto débil del blanco. Además, así evitas el Hígado Frito, que solo aparece tras 3…Nf6 4.Ng5.",
           7: "Ataca e4.",
-          9: "Sujeta e5 y abre al alfil de c8. Luego: enroque, …a6 para dar una casilla al alfil y juego tranquilo de maniobras."
+          9: "Sujeta e5 y abre al alfil de c8. Luego: enroque, …a6 para dar una casilla al alfil y juego tranquilo de maniobras. Ojo si el blanco ataca el alfil con b4: antes de enrocar, retíralo a b6."
         }
       },
       {
@@ -456,6 +491,7 @@ window.OPENINGS = [
         name: "Contra el gambito Evans (4.b4)",
         idea: "El blanco entrega un peón para ganar tiempo. Tómalo y retira el alfil a a5.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "b4", "Bxb4", "c3", "Ba5"],
+        arrows: ["od2d4", "e5d4", "oe1g1", "g8e7"],
         notes: {
           6: "El gambito Evans: un peón a cambio de jugar c3 y d4 con ganancia de tiempo.",
           7: "Acéptalo: tomar es lo mejor.",
@@ -468,6 +504,7 @@ window.OPENINGS = [
         name: "Contra la Española (3.Bb5)",
         idea: "Pregunta al alfil con …a6 y desarrolla con …Nf6 y …Be7: la Española cerrada.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O", "Be7"],
+        arrows: ["b7b5", "oa4b3", "d7d6", "e8g8"],
         notes: {
           4: "La Española: el alfil ataca al caballo que defiende e5.",
           5: "Pregunta al alfil. Tomar en c6 y luego en e5 no gana el peón todavía (mira la línea del cambio).",
@@ -481,10 +518,11 @@ window.OPENINGS = [
         name: "Española: variante del cambio (4.Bxc6)",
         idea: "El blanco cambia el alfil por tu caballo. Recaptura hacia el centro y defiende e5 con …f6.",
         moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Bxc6", "dxc6", "O-O", "f6"],
+        arrows: ["od2d4", "e5d4", "of3d4", "c6c5"],
         notes: {
           7: "Recaptura hacia el centro y abre las líneas de tu dama y tu alfil. A cambio de los peones doblados tienes la pareja de alfiles.",
           8: "Lo correcto. Si el blanco toma ya el peón con 5.Nxe5?, la dama a d4 ataca a la vez al caballo y al peón de e4, y lo recuperas.",
-          9: "Defiende e5 de forma sólida. Luego desarrolla el alfil a d6 o e6."
+          9: "Defiende e5 de forma sólida. Si el blanco rompe con d4, cambia peones y echa al caballo con …c5; si no, desarrolla el alfil a d6 o e6."
         }
       },
       {
@@ -492,6 +530,7 @@ window.OPENINGS = [
         name: "Contra la Escocesa (3.d4)",
         idea: "El blanco abre el centro enseguida. Toma, saca el caballo y responde al avance e5 con la dama.",
         moves: ["e4", "e5", "Nf3", "Nc6", "d4", "exd4", "Nxd4", "Nf6", "Nxc6", "bxc6", "e5", "Qe7"],
+        arrows: ["xe7e5", "od1e2", "f6d5"],
         notes: {
           4: "La Escocesa: el blanco abre el centro de inmediato.",
           5: "Toma: no puedes mantener e5.",
@@ -521,6 +560,7 @@ window.OPENINGS = [
         name: "Principal (3…Qa5)",
         idea: "Dama a a5, caballo a f6, …c6 para darle retirada y el alfil fuera antes de …e6.",
         moves: ["e4", "d5", "exd5", "Qxd5", "Nc3", "Qa5", "d4", "Nf6", "Nf3", "c6", "Bc4", "Bf5"],
+        arrows: ["e7e6", "oc1d2", "oc3d5", "a5d8"],
         notes: {
           1: "La Escandinava: atacas e4 de inmediato.",
           3: "Recuperas el peón. La dama sale pronto y el blanco va a ganar un tiempo atacándola.",
@@ -535,6 +575,7 @@ window.OPENINGS = [
         name: "Si el blanco juega tranquilo (Bc4 y d3)",
         idea: "El mismo esquema. En cuanto aparezca Bd2 apuntando a tu dama, retírala a c7.",
         moves: ["e4", "d5", "exd5", "Qxd5", "Nc3", "Qa5", "Bc4", "Nf6", "d3", "c6", "Bd2", "Qc7"],
+        arrows: ["c8f5", "e7e6", "b8d7"],
         notes: {
           8: "El blanco no ocupa el centro con d4: posición más tranquila.",
           9: "Como siempre, la retirada para la dama.",
@@ -547,6 +588,7 @@ window.OPENINGS = [
         name: "Si el blanco no ataca la dama (3.Nf3)",
         idea: "Aprovecha el tiempo: alfil a g4, caballo a c6 y enroque largo para presionar d4.",
         moves: ["e4", "d5", "exd5", "Qxd5", "Nf3", "Bg4", "Be2", "Nc6", "d4", "O-O-O"],
+        arrows: ["xd5d4", "e7e5", "ob1c3", "d5a5"],
         notes: {
           4: "El blanco se guarda Nc3, a menudo para echar a la dama con c4.",
           5: "Clava el caballo. La dama se queda en el centro mientras nadie la ataque.",
@@ -559,6 +601,7 @@ window.OPENINGS = [
         name: "Si el blanco avanza (2.e5)",
         idea: "Te regala una Caro-Kann mejorada: alfil a f5, …e6 y …c5 de una sola jugada.",
         moves: ["e4", "d5", "e5", "Bf5", "d4", "e6", "Nf3", "c5"],
+        arrows: ["xc5d4", "b8c6", "d8b6"],
         notes: {
           2: "El blanco no toma: cierra el centro, pero no te crea ningún problema.",
           3: "El alfil sale antes de …e6.",
@@ -571,6 +614,7 @@ window.OPENINGS = [
         name: "Si el blanco defiende con 2.Nc3",
         idea: "Avanza …d4 ganando un tiempo sobre el caballo y monta el centro con …e5.",
         moves: ["e4", "d5", "Nc3", "d4", "Nce2", "e5", "Ng3", "Be6"],
+        arrows: ["xe6c4", "b8c6", "d8d7", "e8c8"],
         notes: {
           2: "El blanco defiende e4 con el caballo en vez de tomar.",
           3: "Ganas espacio y echas al caballo.",
@@ -599,6 +643,7 @@ window.OPENINGS = [
         name: "Variante clásica (6.Be2)",
         idea: "El esquema de la Dragón contra el desarrollo tranquilo: fianchetto y enroque rápido.",
         moves: ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "g6", "Be2", "Bg7", "O-O", "O-O"],
+        arrows: ["b8c6", "xc6d4", "c8d7", "a8c8"],
         notes: {
           1: "La Siciliana: controlas d4 desde el flanco y evitas la simetría.",
           3: "Prepara …Nf6 sin que e5 te moleste.",
@@ -614,6 +659,7 @@ window.OPENINGS = [
         name: "Ataque yugoslavo (6.Be3, 7.f3 y 8.Qd2)",
         idea: "El blanco enrocará largo y lanzará sus peones contra tu rey. Tú atacas el suyo: gana el más rápido.",
         moves: ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "g6", "Be3", "Bg7", "f3", "O-O", "Qd2", "Nc6"],
+        arrows: ["c8d7", "a8c8", "c6e5", "e5c4"],
         notes: {
           10: "Prepara Qd2 y Bh6 para cambiar tu alfil del dragón.",
           12: "Sujeta e4 y prepara el avance g4-h4-h5 contra tu rey.",
@@ -626,6 +672,7 @@ window.OPENINGS = [
         name: "Contra la Alapin (2.c3)",
         idea: "El blanco prepara d4 con c3. Ataca e4 con el caballo y, tras e5, colócalo en d5.",
         moves: ["e4", "c5", "c3", "Nf6", "e5", "Nd5", "d4", "cxd4", "Nf3", "Nc6"],
+        arrows: ["oc3d4", "d7d6", "xc6d4"],
         notes: {
           2: "La Alapin: el blanco quiere un centro de peones con d4.",
           3: "Ataca e4 de inmediato: el blanco no puede defenderlo con Nc3 porque c3 está ocupado.",
@@ -638,6 +685,7 @@ window.OPENINGS = [
         name: "Contra el gambito Smith-Morra (3.c3)",
         idea: "El blanco ofrece un peón. No te compliques: …Nf6 y se llega a la posición de la Alapin.",
         moves: ["e4", "c5", "d4", "cxd4", "c3", "Nf6", "e5", "Nd5"],
+        arrows: ["oc3d4", "d7d6", "og1f3", "b8c6"],
         notes: {
           4: "El gambito Smith-Morra: un peón a cambio de desarrollo rápido.",
           5: "En vez de tomar en c3, ataca e4. Así evitas todas las trampas del gambito.",
@@ -649,6 +697,7 @@ window.OPENINGS = [
         name: "Contra 3.Bb5+ (Moscú)",
         idea: "Jaque de alfil: tápalo con el tuyo y cambia. Posición sencilla.",
         moves: ["e4", "c5", "Nf3", "d6", "Bb5+", "Bd7", "Bxd7+", "Qxd7"],
+        arrows: ["b8c6", "g8f6", "g7g6", "f8g7"],
         notes: {
           4: "El blanco evita la teoría con un jaque.",
           5: "Tapa el jaque desarrollando.",
@@ -660,6 +709,7 @@ window.OPENINGS = [
         name: "Contra la Siciliana cerrada (2.Nc3 y g3)",
         idea: "El blanco no abre con d4. Mismo esquema: fianchetto en g7.",
         moves: ["e4", "c5", "Nc3", "Nc6", "g3", "g6", "Bg2", "Bg7", "d3", "d6"],
+        arrows: ["e7e6", "g8e7", "e8g8", "b7b5"],
         notes: {
           2: "La cerrada: el blanco juega despacio y suele atacar luego con f4.",
           5: "Tu fianchetto, como en la Dragón.",
@@ -686,6 +736,7 @@ window.OPENINGS = [
         name: "Línea principal (4.Bg5)",
         idea: "Desarrollo clásico: …Be7 para deshacer la clavada, enroque y …h6 para preguntar al alfil.",
         moves: ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Bg5", "Be7", "e3", "O-O", "Nf3", "h6"],
+        arrows: ["xh6g5", "og5h4", "b7b6", "c8b7"],
         notes: {
           1: "Ocupa el centro igual que el blanco.",
           3: "Sostiene d5 con un peón. Tu alfil de c8 queda tapado: es el precio de la solidez.",
@@ -700,6 +751,7 @@ window.OPENINGS = [
         name: "Variante del cambio (4.cxd5)",
         idea: "El blanco cambia en d5. Recaptura con el peón de e: tu alfil de c8 queda libre.",
         moves: ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "cxd5", "exd5", "Bg5", "c6", "e3", "Be7"],
+        arrows: ["e8g8", "b8d7", "f8e8", "oa1b1"],
         notes: {
           6: "El blanco cambia para fijar la estructura.",
           7: "Recaptura con el peón de e: se abre la diagonal de tu alfil de c8, que ya no está encerrado.",
@@ -712,6 +764,7 @@ window.OPENINGS = [
         name: "Contra la Londres (2.Bf4)",
         idea: "Si el blanco no juega c4: …c5, …Nc6 y la dama a b6 contra b2, que el alfil de f4 dejó sin defensa.",
         moves: ["d4", "d5", "Bf4", "Nf6", "e3", "c5", "c3", "Nc6", "Nd2", "Qb6"],
+        arrows: ["xb6b2", "od1b3", "c5c4"],
         notes: {
           2: "El sistema Londres: el alfil sale antes de e3.",
           5: "Ataca d4 desde el principio, la mejor forma de incomodar a la Londres.",
@@ -740,6 +793,7 @@ window.OPENINGS = [
         name: "Principal (…dxc4 y …Bf5)",
         idea: "Con los dos caballos blancos fuera, toma en c4; tras a4, alfil a f5 y …e6.",
         moves: ["d4", "d5", "c4", "c6", "Nf3", "Nf6", "Nc3", "dxc4", "a4", "Bf5", "e3", "e6"],
+        arrows: ["of1c4", "f8b4", "b8d7", "e8g8"],
         notes: {
           3: "La Eslava: defiendes d5 sin encerrar el alfil de c8.",
           5: "Desarrolla. El alfil todavía no: el orden importa.",
@@ -754,6 +808,7 @@ window.OPENINGS = [
         name: "Eslava lenta (4.e3)",
         idea: "Si el blanco juega e3 antes de sacar el caballo de dama, el alfil ya puede salir a f5.",
         moves: ["d4", "d5", "c4", "c6", "Nf3", "Nf6", "e3", "Bf5", "Nc3", "e6"],
+        arrows: ["of3h4", "f5g6", "oh4g6", "h7g6"],
         notes: {
           6: "El blanco defiende c4 y encierra su propio alfil de c1: tomar en c4 ya no tiene gracia.",
           7: "Sin el caballo en c3 el alfil puede salir: si el blanco prueba cxd5 y Qb3, basta defender b7 con …Qc7.",
@@ -765,6 +820,7 @@ window.OPENINGS = [
         name: "Si el caballo de dama sale antes (3.Nc3)",
         idea: "Con este orden el alfil no debe salir: …e6 y esquema Semieslavo.",
         moves: ["d4", "d5", "c4", "c6", "Nc3", "Nf6", "e3", "e6", "Nf3", "Nbd7"],
+        arrows: ["f8d6", "e8g8", "d5c4", "b7b5"],
         notes: {
           4: "Otro orden: el caballo de dama sale primero y presiona d5.",
           6: "El blanco sostiene c4.",
@@ -777,11 +833,12 @@ window.OPENINGS = [
         name: "Variante del cambio (3.cxd5)",
         idea: "Posición simétrica: caballos a f6 y c6, y el alfil a f5 antes de …e6.",
         moves: ["d4", "d5", "c4", "c6", "cxd5", "cxd5", "Nc3", "Nf6", "Nf3", "Nc6", "Bf4", "Bf5"],
+        arrows: ["oe2e3", "e7e6", "od1b3", "f8b4"],
         notes: {
           4: "El blanco cambia y la estructura queda simétrica. Tiene fama de tablas, pero hay que jugarla con cuidado.",
           5: "Recaptura con el peón para mantener el tuyo en d5.",
           9: "Sin peón en c6, el caballo va a su mejor casilla.",
-          11: "Alfil fuera antes de …e6. Si el blanco ataca b7 con Qb3 después de …e6, la respuesta es …Bb4, clavando el caballo."
+          11: "Alfil fuera antes de …e6. Si el blanco ataca b7 con Qb3 después de …e6, la respuesta es …Bb4, clavando el caballo. Si Qb3 llega ya, antes de que juegues …e6, no defiendas b7: echa a la dama con …Na5."
         }
       },
       {
@@ -789,6 +846,7 @@ window.OPENINGS = [
         name: "Contra la Londres (2.Bf4)",
         idea: "Si el blanco no juega c4: …c5, …Nc6 y la dama a b6 contra b2, que el alfil de f4 dejó sin defensa.",
         moves: ["d4", "d5", "Bf4", "Nf6", "e3", "c5", "c3", "Nc6", "Nd2", "Qb6"],
+        arrows: ["xb6b2", "od1b3", "c5c4"],
         notes: {
           2: "El sistema Londres: el alfil sale antes de e3. Aquí no hay Eslava que valga, porque el blanco no ataca d5.",
           5: "Ataca d4 desde el principio, la mejor forma de incomodar a la Londres.",
@@ -816,6 +874,7 @@ window.OPENINGS = [
         name: "Variante clásica (5.Nf3 y 6.Be2)",
         idea: "El esquema completo y luego el golpe …e5 contra el centro.",
         moves: ["d4", "Nf6", "c4", "g6", "Nc3", "Bg7", "e4", "d6", "Nf3", "O-O", "Be2", "e5"],
+        arrows: ["xe5d4", "od4d5", "f6h5", "f7f5"],
         notes: {
           1: "Controla e4 sin comprometer todavía tus peones centrales.",
           3: "Prepara el fianchetto.",
@@ -831,6 +890,7 @@ window.OPENINGS = [
         name: "Sämisch (5.f3)",
         idea: "El blanco refuerza e4 con f3. Aquí el golpe bueno es …c5, no …e5.",
         moves: ["d4", "Nf6", "c4", "g6", "Nc3", "Bg7", "e4", "d6", "f3", "O-O", "Be3", "c5", "Nge2", "Nc6"],
+        arrows: ["od4d5", "c6e5", "a7a6", "b7b5"],
         notes: {
           8: "El blanco sujeta e4 y suele preparar Qd2, Bh6 y enroque largo para atacar tu rey.",
           9: "Enroca de todas formas: tu rey está seguro detrás del alfil de g7.",
@@ -843,6 +903,7 @@ window.OPENINGS = [
         name: "Contra la Londres (2.Bf4)",
         idea: "Mismo esquema. Si el blanco enroca sin jugar antes h3, …Nh5 caza su alfil de f4.",
         moves: ["d4", "Nf6", "Bf4", "g6", "e3", "Bg7", "Nf3", "O-O", "Be2", "d6", "O-O", "Nh5"],
+        arrows: ["of4g5", "h7h6", "og5h4", "g6g5"],
         notes: {
           2: "La Londres: no hay c4, así que el blanco no ocupa el centro con peones.",
           5: "Tu esquema de siempre.",

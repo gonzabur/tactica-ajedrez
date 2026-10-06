@@ -42,15 +42,24 @@ se mira una vez.
    es y qué se busca con ella. Si al repertorio le falta algo (por ejemplo, no
    hay nada contra 1.d4), la app lo avisa.
 2. **Aprender.** Cada línea se juega guiada sobre el tablero: se marca la jugada
-   que toca y se explica por qué se hace. Las líneas nuevas van de una apertura
-   en una, terminando una antes de empezar la siguiente, y se recomiendan tres
-   al día como mucho.
+   que toca y se explica por qué se hace. Después hay que repetirla de memoria
+   («ahora inténtalo tú»): si pasan 10 segundos sin mover parpadea la pieza, y
+   a los 15 también la casilla de destino. Si ese intento sale limpio, la línea
+   queda aprendida; si hubo pista o fallo, se pide un segundo. Las líneas
+   nuevas van de una apertura en una, terminando una antes de empezar la
+   siguiente, y se recomiendan tres al día como mucho.
 3. **Repasar.** Lo aprendido vuelve mezclado y ya sin guía, con repetición
    espaciada: una línea hecha bien a la primera tarda cada vez más en volver
    (1, 3, 7, 21 y 60 días); un fallo la devuelve al principio y además la hace
    salir otra vez al final de la sesión. Al terminar cada línea se muestra el
    nombre de la variante y el plan que sigue. Si hoy no toca nada, hay repaso
    libre de todo lo aprendido.
+
+Al completar una línea, tanto al aprender como al repasar, el plan que sigue se
+dibuja sobre el tablero con **flechas numeradas** en el orden en que se juegan:
+naranja para tus jugadas, rojo para una pieza tuya que presiona una casilla y
+azul para la respuesta habitual del rival. Están escritas a mano en el campo
+`arrows` de cada línea y `tests.html` comprueba que todas son jugadas legales.
 
 | Con blancas | Con negras contra 1.e4 | Con negras contra 1.d4 |
 |---|---|---|

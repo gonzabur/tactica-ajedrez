@@ -224,8 +224,12 @@ window.Board = (function () {
      * el arranque. Todo en unidades de casilla (el viewBox es 8×8), así que
      * escala solo con el tablero.
      */
-    function renderArrows() {
+    function renderArrows(animate) {
       var START = 0.3, SHAFT = 0.2, HEAD_W = 0.5, HEAD_L = 0.38;
+      // van saliendo de una en una, en su orden: cada flecha (con su número)
+      // tarda ARROW_STEP segundos en aparecer y entonces empieza la siguiente
+      var ARROW_STEP = 1;
+      arrowsLayer.classList.toggle("still", !animate);
       var shafts = "", badges = "";
       function n(v) { return Math.round(v * 1000) / 1000; }
 
@@ -247,7 +251,8 @@ window.Board = (function () {
         var base = [B[0] - u[0] * HEAD_L, B[1] - u[1] * HEAD_L];
         var px = -u[1] * HEAD_W / 2, py = u[0] * HEAD_W / 2;
 
-        shafts += '<g class="arrow ' + a.kind + '">' +
+        var delay = ' style="animation-delay:' + i * ARROW_STEP + 's"';
+        shafts += '<g class="arrow ' + a.kind + '"' + delay + ">" +
           '<path d="M' + n(S[0]) + " " + n(S[1]) +
             (C ? " L" + n(C[0]) + " " + n(C[1]) : "") +
             // un pelo dentro de la punta, para que no quede rendija entre ambas
@@ -256,7 +261,7 @@ window.Board = (function () {
           '<polygon points="' + n(B[0]) + "," + n(B[1]) + " " +
             n(base[0] + px) + "," + n(base[1] + py) + " " +
             n(base[0] - px) + "," + n(base[1] - py) + '"/></g>';
-        badges += '<g class="arrow-num ' + a.kind + '">' +
+        badges += '<g class="arrow-num ' + a.kind + '"' + delay + ">" +
           '<circle cx="' + n(S[0]) + '" cy="' + n(S[1]) + '" r="0.17"/>' +
           '<text x="' + n(S[0]) + '" y="' + n(S[1]) + '" dy="0.35em">' + (i + 1) + "</text></g>";
       });
@@ -597,8 +602,12 @@ window.Board = (function () {
 
       /** Flechas numeradas del plan (lista vacía o null para quitarlas). */
       setArrows: function (list) {
-        state.arrows = list || [];
-        renderArrows();
+        list = list || [];
+        // las mismas flechas otra vez: no se repite la entrada una a una
+        var key = JSON.stringify(list);
+        if (key === JSON.stringify(state.arrows)) return;
+        state.arrows = list;
+        renderArrows(true);
       },
 
       /** Insignia de acierto/fallo/pista sobre una casilla, ajena a renderMarks(). */

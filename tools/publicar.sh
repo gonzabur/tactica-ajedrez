@@ -53,7 +53,10 @@ sed -i '' "s|^const CACHE_VERSION = .*|const CACHE_VERSION = \"tactica-$HUELLA\"
 echo "· Versión de caché: tactica-$HUELLA"
 
 git add sw.js index.html js/version.js
-git commit -q -m "Sincroniza versión de caché y commit mostrado en Ajustes ($COMMIT)"
+# Este segundo commit es el que GitHub enseña junto a los ficheros: lleva la
+# misma descripción del cambio (con la versión delante), no un texto fijo.
+git commit -q -m "v$VERSION · ${1:-Actualiza Táctica}" \
+              -m "Sincroniza la versión de caché y el commit ($COMMIT) que se muestra en Ajustes."
 
 git push -q origin main
 echo "· Subido. GitHub tarda un minuto en servir la versión nueva."

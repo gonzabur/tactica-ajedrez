@@ -1211,14 +1211,20 @@ html.standalone, html.standalone body { height: 100vh; }
   box-shadow: inset 0 0 0 5px #6ba8e8;
 }
 
-/* Pista de la jugada entera: el destino parpadea a contratiempo del origen,
-   para que se lea "de aquí… a aquí" y no dos casillas sueltas. */
-.mark.flash-hint-to { z-index: 6; }
-.mark.flash-hint-to::after {
+/* Pista fija (aprender una apertura): parpadea sin parar hasta que se hace
+   la jugada. El destino va a contratiempo del origen, para que se lea "de
+   aquí… a aquí" y no dos casillas sueltas. */
+.mark.hint-hold { z-index: 6; }
+.mark.hint-hold::after {
   content: ""; position: absolute; inset: 0;
   border-radius: 4px;
-  animation: pulse .7s ease-out .35s both;
   box-shadow: inset 0 0 0 5px #6ba8e8;
+  animation: hint-blink 1s ease-in-out infinite;
+}
+.mark.hint-hold.to::after { animation-delay: -.5s; }
+@keyframes hint-blink {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
 }
 
 @keyframes pulse {
@@ -1254,6 +1260,7 @@ html.standalone, html.standalone body { height: 100vh; }
   }
   .mark.flash-right::after, .mark.flash-wrong::after { transform: scale(1); }
   .mark.mate::after { animation: none; opacity: 1; }
+  .mark.hint-hold::after { animation: none; opacity: 1; }
 }
 
 /* --- móvil en horizontal: tablero a la izquierda, el resto a la derecha -----
@@ -73828,6 +73835,7 @@ window.Board = (function () {
       mate: false,         // ...y si además es mate, que se vea distinto
       guide: null,         // [origen, destino] de la jugada que hay que hacer (aprender)
       arrows: [],          // flechas numeradas del plan: [{ from, to, kind }]
+      hint: null,          // pista fija que parpadea: { from, to } (to puede faltar)
       interactive: false,
       coords: options.coords !== false,
       pieceSet: options.pieces || "cburnett"
@@ -74019,6 +74027,26 @@ window.Board = (function () {
       });
       // los números van al final para que ninguna flecha los tape
       arrowsLayer.innerHTML = shafts + badges;
+    }
+
+    /**
+     * Pista que no se va sola: parpadea hasta que se quite. Vive en la capa
+     * de destellos y no en la de marcas porque esa se reconstruye con cada
+     * toque, y el parpadeo volvería a empezar cada vez que se toca una pieza.
+     */
+    var hintEls = [];
+    function renderHint() {
+      hintEls.forEach(function (el) { el.remove(); });
+      hintEls = [];
+      if (!state.hint) return;
+      [[state.hint.from, "hint-hold"], [state.hint.to, "hint-hold to"]].forEach(function (h) {
+        if (!h[0]) return;
+        var el = document.createElement("div");
+        el.className = "mark " + h[1];
+        place(el, h[0]);
+        flashLayer.appendChild(el);
+        hintEls.push(el);
+      });
     }
 
     // --- interacción ----------------------------------------------------
@@ -74307,6 +74335,7 @@ window.Board = (function () {
         for (var sq in els) place(els[sq], sq);
         renderMarks();
         renderArrows();
+        renderHint();
       },
 
       flip: function () {
@@ -74343,8 +74372,7 @@ window.Board = (function () {
         el.className = "mark flash-" + kind;
         place(el, sq);
         flashLayer.appendChild(el);
-        // el destino de una pista parpadea a contratiempo: dura un poco más
-        window.setTimeout(function () { el.remove(); }, kind === "hint-to" ? 1100 : 700);
+        window.setTimeout(function () { el.remove(); }, 700);
       },
 
       /** Quita cualquier insignia pendiente. Hay que llamarlo al cargar un
@@ -74354,6 +74382,18 @@ window.Board = (function () {
        *  como en Supervivencia). */
       clearFlashes: function () {
         flashLayer.innerHTML = "";
+        state.hint = null;
+        hintEls = [];
+      },
+
+      /** Pista fija: parpadea la casilla `from` y, a contratiempo, `to` (si
+       *  se da). Sin argumentos se quita. */
+      setHint: function (from, to) {
+        var next = from ? { from: from, to: to || null } : null;
+        var same = next && state.hint && next.from === state.hint.from && next.to === state.hint.to;
+        if (same || (!next && !state.hint)) return;   // no reiniciar el parpadeo sin motivo
+        state.hint = next;
+        renderHint();
       },
 
       get orientation() { return state.orientation; },
@@ -74657,12 +74697,17 @@ window.PuzzlePlayer = (function () {
       if (handlers.onHint) handlers.onHint();
     }
 
-    /** Marca la jugada entera: la pieza y, a contratiempo, la casilla de destino. */
-    function hintMove() {
-      if (finished || !puzzle || ply >= puzzle.moves.length) return;
+    /**
+     * Pista que se queda parpadeando: la pieza que toca mover y, con
+     * `withTarget`, también la casilla de destino a contratiempo. `false`
+     * la quita. Devuelve si hay pista puesta.
+     */
+    function holdHint(on, withTarget) {
+      if (!on || finished || !puzzle || ply >= puzzle.moves.length) { board.setHint(null); return false; }
       usedHint = true;
-      board.flash(puzzle.moves[ply].slice(0, 2), "hint");
-      board.flash(puzzle.moves[ply].slice(2, 4), "hint-to");
+      var uci = puzzle.moves[ply];
+      board.setHint(uci.slice(0, 2), withTarget ? uci.slice(2, 4) : null);
+      return true;
     }
 
     /** Reproduce lo que queda de solución y da el puzzle por fallado. */
@@ -74708,7 +74753,7 @@ window.PuzzlePlayer = (function () {
       load: load,
       onUserMove: onUserMove,
       hint: hint,
-      hintMove: hintMove,
+      holdHint: holdHint,
       reveal: reveal,
       fail: fail,
       back: function () { goTo(viewAt - 1); },
@@ -75419,8 +75464,7 @@ window.Openings = (function () {
           stage++; repeat = true;
           return {
             text: stage === 1 ? "Ahora inténtalo tú" : "Bien. Otra vez, de memoria",
-            nextLabel: "Intento " + stage + " de " + ATTEMPTS,
-            plan: false
+            nextLabel: "Intento " + stage + " de " + ATTEMPTS
           };
         }
         markLearned(res.puzzle.line.id);
@@ -75563,6 +75607,8 @@ window.Play = (function () {
   var planFor = null;      // aperturas: línea ya terminada cuyo plan se dibuja con flechas
   var lastOutcome = {};    // lo que devolvió el modo al acabar el último puzzle
   var hintTimers = [];     // pistas que llegan solas si el jugador se atasca
+  var hintLevel = 0;       // 0 sin pista, 1 parpadea la pieza, 2 también el destino
+  var hintPly = -1;        // jugada para la que ya corre la cuenta de las pistas
 
   var TEMPLATE =
     '<header class="play-head">' +
@@ -75639,7 +75685,10 @@ window.Play = (function () {
       onFailed: onRevealed,
       onLine: renderMoves,
       onTurn: onTurn,
-      onProgress: function () { if (!mode.guided) setStatus("¡Bien! Sigue.", "good"); }
+      onProgress: function () {
+        stopHints();   // jugada hecha: la pista se quita ya, sin esperar a la respuesta
+        if (!mode.guided) setStatus("¡Bien! Sigue.", "good");
+      }
     });
 
     els.back.addEventListener("click", function () { player.back(); });
@@ -75690,6 +75739,7 @@ window.Play = (function () {
     planFor = null;
     lastOutcome = {};
     stopHints();
+    hintPly = -1;
     board.setArrows(null);
     board.setGuide(null);
     setStatus(mode.loadText ? mode.loadText(puzzle, color)
@@ -75701,7 +75751,10 @@ window.Play = (function () {
 
   /** Aprender: marca en el tablero la jugada que toca y la dice. */
   function onTurn(ply) {
-    startHints();
+    // Tras una jugada equivocada el turno se devuelve al jugador y esto se
+    // llama otra vez para la MISMA jugada: la cuenta de las pistas no debe
+    // volver a empezar, o cada fallo regalaría tiempo.
+    if (ply !== hintPly) { hintPly = ply; startHints(); }
     if (!mode.guided) {
       // de memoria: se avisa de que toca, sin decir qué
       if (mode.hintAfter) setStatus("Te toca", "turn " + (player.puzzle.playerFirst ? "w" : "b"));
@@ -75714,29 +75767,32 @@ window.Play = (function () {
   }
 
   /**
-   * Pistas por tiempo (aprender, de memoria): si pasan `mode.hintAfter[0]`
-   * segundos sin mover, parpadea la pieza; a los `[1]`, la pieza y el
-   * destino, y eso se repite cada 5 s para que no se pierda.
+   * Pistas por tiempo (aprender, de memoria). La cuenta empieza cuando le
+   * toca mover al jugador: a los `mode.hintAfter[0]` segundos empieza a
+   * parpadear la pieza y a los `[1]` también el destino, a contratiempo. No
+   * dejan de parpadear hasta que se hace la jugada, y nada reinicia la
+   * cuenta: ni tocar una pieza ni equivocarse.
    */
   function startHints() {
     stopHints();
     var after = mode.hintAfter;
     if (!after) return;
-    hintTimers.push(window.setTimeout(function () {
-      if (player.atLive) player.hint();
-    }, after[0] * 1000));
-    hintTimers.push(window.setTimeout(function () {
-      if (player.atLive) player.hintMove();
-      hintTimers.push(window.setInterval(function () {
-        if (player.atLive) player.hintMove();
-      }, 5000));
-    }, after[1] * 1000));
+    hintTimers.push(window.setTimeout(function () { hintLevel = 1; showHint(); }, after[0] * 1000));
+    hintTimers.push(window.setTimeout(function () { hintLevel = 2; showHint(); }, after[1] * 1000));
   }
 
   function stopHints() {
-    // clearTimeout y clearInterval comparten identificadores
     hintTimers.forEach(function (t) { window.clearTimeout(t); });
     hintTimers = [];
+    hintLevel = 0;
+    if (player) player.holdHint(false);
+  }
+
+  /** Pinta la pista que toque; mirando jugadas anteriores se esconde, porque
+   *  las casillas son las de la posición actual. */
+  function showHint() {
+    if (!player) return;
+    player.holdHint(hintLevel > 0 && player.atLive, hintLevel > 1);
   }
 
   function onMovePlayed(move, game) {
@@ -75751,7 +75807,6 @@ window.Play = (function () {
     if (window.Store.settings.sound) window.Sound.wrong();
     if (mode.allowRetry) {
       setStatus("No es esa. Prueba otra vez.", "bad");
-      startHints();   // sigue siendo su turno: la cuenta empieza de nuevo
       return;
     }
     setStatus("Fallo. Podrás repasarlo al terminar.", "bad");
@@ -75835,6 +75890,7 @@ window.Play = (function () {
     if (mode.noteAt) els.info.textContent = mode.noteAt(player.puzzle, viewAt - 1);
     if (mode.guided) board.setGuide(null);
     showPlan(viewAt === line.length - 1);
+    showHint();
     // Sin el atributo `disabled`: iOS trata los toques rápidos sobre un botón
     // desactivado como un doble toque sobre contenido "muerto" e intenta
     // ampliar, y como el zoom está bloqueado el tablero da un tirón arriba y
@@ -77032,7 +77088,7 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * Versión mostrada en Ajustes. La rellena tools/publicar.sh: sube el último
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
-window.APP_VERSION = "1.1.12";
-window.APP_COMMIT = "38bfdd1";
+window.APP_VERSION = "1.1.13";
+window.APP_COMMIT = "95c6d23";
 
 </script>

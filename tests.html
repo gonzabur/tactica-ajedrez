@@ -198,8 +198,8 @@
       var r0 = m.result({ puzzle: p, clean: true });
       assert("Aprender: tras la guiada la línea aún NO cuenta como aprendida",
         !O.learnedItems().length && window.Store.state.openings.cards[id] === undefined);
-      assert("Aprender: tras la guiada se propone el intento 1 y no se enseña el plan",
-        r0.nextLabel === "Intento 1 de 3" && r0.plan === false);
+      assert("Aprender: tras la guiada se propone el intento 1 y se enseña el plan",
+        r0.nextLabel === "Intento 1 de 3" && r0.plan !== false);
 
       // tres intentos de memoria, siempre, salgan limpios o no; la ayuda llega cada vez más tarde
       var tiempos = [], mismos = true, pendientes = true, r;
@@ -208,7 +208,7 @@
         mismos = mismos && p && p.line.id === id && !m.guided;
         tiempos.push(m.hintAfter.join("/"));
         r = m.result({ puzzle: p, clean: true });
-        if (k < 3) pendientes = pendientes && r.plan === false &&
+        if (k < 3) pendientes = pendientes && r.plan !== false && !!r.nextLabel &&
           window.Store.state.openings.cards[id] === undefined;
       }
       assert("Aprender: los tres intentos son la misma línea, sin guía", mismos);

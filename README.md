@@ -46,7 +46,9 @@ se mira una vez.
    («ahora inténtalo tú»), tres veces seguidas. Si te atascas, primero parpadea
    la pieza y después también la casilla de destino; esa ayuda llega cada vez
    más tarde (a los 5 y 10 segundos en el primer intento, 10 y 15 en el
-   segundo, 15 y 20 en el tercero). Tras el tercero queda aprendida. Las líneas
+   segundo, 15 y 20 en el tercero) y no deja de parpadear hasta que se hace la
+   jugada; ni tocar una pieza ni equivocarse reinicia la cuenta. Tras el
+   tercero queda aprendida. Las líneas
    nuevas van de una apertura en una, terminando una antes de empezar la
    siguiente, y se recomiendan tres al día como mucho.
 3. **Repasar.** Lo aprendido vuelve mezclado y ya sin guía, con repetición
@@ -56,7 +58,8 @@ se mira una vez.
    nombre de la variante y el plan que sigue. Si hoy no toca nada, hay repaso
    libre de todo lo aprendido.
 
-Al completar una línea, tanto al aprender como al repasar, el plan que sigue se
+Al completar una línea (al repasar, y al aprender tras la pasada guiada y tras
+cada intento de memoria), el plan que sigue se
 dibuja sobre el tablero con **flechas numeradas** en el orden en que se juegan:
 naranja para tus jugadas, rojo para una pieza tuya que presiona una casilla y
 azul para la respuesta habitual del rival. Están escritas a mano en el campo

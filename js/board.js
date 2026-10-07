@@ -70,6 +70,7 @@ window.Board = (function () {
       mate: false,         // ...y si además es mate, que se vea distinto
       guide: null,         // [origen, destino] de la jugada que hay que hacer (aprender)
       arrows: [],          // flechas numeradas del plan: [{ from, to, kind }]
+      hint: null,          // pista fija que parpadea: { from, to } (to puede faltar)
       interactive: false,
       coords: options.coords !== false,
       pieceSet: options.pieces || "cburnett"
@@ -261,6 +262,26 @@ window.Board = (function () {
       });
       // los números van al final para que ninguna flecha los tape
       arrowsLayer.innerHTML = shafts + badges;
+    }
+
+    /**
+     * Pista que no se va sola: parpadea hasta que se quite. Vive en la capa
+     * de destellos y no en la de marcas porque esa se reconstruye con cada
+     * toque, y el parpadeo volvería a empezar cada vez que se toca una pieza.
+     */
+    var hintEls = [];
+    function renderHint() {
+      hintEls.forEach(function (el) { el.remove(); });
+      hintEls = [];
+      if (!state.hint) return;
+      [[state.hint.from, "hint-hold"], [state.hint.to, "hint-hold to"]].forEach(function (h) {
+        if (!h[0]) return;
+        var el = document.createElement("div");
+        el.className = "mark " + h[1];
+        place(el, h[0]);
+        flashLayer.appendChild(el);
+        hintEls.push(el);
+      });
     }
 
     // --- interacción ----------------------------------------------------
@@ -549,6 +570,7 @@ window.Board = (function () {
         for (var sq in els) place(els[sq], sq);
         renderMarks();
         renderArrows();
+        renderHint();
       },
 
       flip: function () {
@@ -585,8 +607,7 @@ window.Board = (function () {
         el.className = "mark flash-" + kind;
         place(el, sq);
         flashLayer.appendChild(el);
-        // el destino de una pista parpadea a contratiempo: dura un poco más
-        window.setTimeout(function () { el.remove(); }, kind === "hint-to" ? 1100 : 700);
+        window.setTimeout(function () { el.remove(); }, 700);
       },
 
       /** Quita cualquier insignia pendiente. Hay que llamarlo al cargar un
@@ -596,6 +617,18 @@ window.Board = (function () {
        *  como en Supervivencia). */
       clearFlashes: function () {
         flashLayer.innerHTML = "";
+        state.hint = null;
+        hintEls = [];
+      },
+
+      /** Pista fija: parpadea la casilla `from` y, a contratiempo, `to` (si
+       *  se da). Sin argumentos se quita. */
+      setHint: function (from, to) {
+        var next = from ? { from: from, to: to || null } : null;
+        var same = next && state.hint && next.from === state.hint.from && next.to === state.hint.to;
+        if (same || (!next && !state.hint)) return;   // no reiniciar el parpadeo sin motivo
+        state.hint = next;
+        renderHint();
       },
 
       get orientation() { return state.orientation; },

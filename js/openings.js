@@ -244,8 +244,7 @@ window.Openings = (function () {
           stage++; repeat = true;
           return {
             text: stage === 1 ? "Ahora inténtalo tú" : "Bien. Otra vez, de memoria",
-            nextLabel: "Intento " + stage + " de " + ATTEMPTS,
-            plan: false
+            nextLabel: "Intento " + stage + " de " + ATTEMPTS
           };
         }
         markLearned(res.puzzle.line.id);

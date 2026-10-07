@@ -18,6 +18,8 @@ window.Play = (function () {
   var planFor = null;      // aperturas: línea ya terminada cuyo plan se dibuja con flechas
   var lastOutcome = {};    // lo que devolvió el modo al acabar el último puzzle
   var hintTimers = [];     // pistas que llegan solas si el jugador se atasca
+  var hintLevel = 0;       // 0 sin pista, 1 parpadea la pieza, 2 también el destino
+  var hintPly = -1;        // jugada para la que ya corre la cuenta de las pistas
 
   var TEMPLATE =
     '<header class="play-head">' +
@@ -94,7 +96,10 @@ window.Play = (function () {
       onFailed: onRevealed,
       onLine: renderMoves,
       onTurn: onTurn,
-      onProgress: function () { if (!mode.guided) setStatus("¡Bien! Sigue.", "good"); }
+      onProgress: function () {
+        stopHints();   // jugada hecha: la pista se quita ya, sin esperar a la respuesta
+        if (!mode.guided) setStatus("¡Bien! Sigue.", "good");
+      }
     });
 
     els.back.addEventListener("click", function () { player.back(); });
@@ -145,6 +150,7 @@ window.Play = (function () {
     planFor = null;
     lastOutcome = {};
     stopHints();
+    hintPly = -1;
     board.setArrows(null);
     board.setGuide(null);
     setStatus(mode.loadText ? mode.loadText(puzzle, color)
@@ -156,7 +162,10 @@ window.Play = (function () {
 
   /** Aprender: marca en el tablero la jugada que toca y la dice. */
   function onTurn(ply) {
-    startHints();
+    // Tras una jugada equivocada el turno se devuelve al jugador y esto se
+    // llama otra vez para la MISMA jugada: la cuenta de las pistas no debe
+    // volver a empezar, o cada fallo regalaría tiempo.
+    if (ply !== hintPly) { hintPly = ply; startHints(); }
     if (!mode.guided) {
       // de memoria: se avisa de que toca, sin decir qué
       if (mode.hintAfter) setStatus("Te toca", "turn " + (player.puzzle.playerFirst ? "w" : "b"));
@@ -169,29 +178,32 @@ window.Play = (function () {
   }
 
   /**
-   * Pistas por tiempo (aprender, de memoria): si pasan `mode.hintAfter[0]`
-   * segundos sin mover, parpadea la pieza; a los `[1]`, la pieza y el
-   * destino, y eso se repite cada 5 s para que no se pierda.
+   * Pistas por tiempo (aprender, de memoria). La cuenta empieza cuando le
+   * toca mover al jugador: a los `mode.hintAfter[0]` segundos empieza a
+   * parpadear la pieza y a los `[1]` también el destino, a contratiempo. No
+   * dejan de parpadear hasta que se hace la jugada, y nada reinicia la
+   * cuenta: ni tocar una pieza ni equivocarse.
    */
   function startHints() {
     stopHints();
     var after = mode.hintAfter;
     if (!after) return;
-    hintTimers.push(window.setTimeout(function () {
-      if (player.atLive) player.hint();
-    }, after[0] * 1000));
-    hintTimers.push(window.setTimeout(function () {
-      if (player.atLive) player.hintMove();
-      hintTimers.push(window.setInterval(function () {
-        if (player.atLive) player.hintMove();
-      }, 5000));
-    }, after[1] * 1000));
+    hintTimers.push(window.setTimeout(function () { hintLevel = 1; showHint(); }, after[0] * 1000));
+    hintTimers.push(window.setTimeout(function () { hintLevel = 2; showHint(); }, after[1] * 1000));
   }
 
   function stopHints() {
-    // clearTimeout y clearInterval comparten identificadores
     hintTimers.forEach(function (t) { window.clearTimeout(t); });
     hintTimers = [];
+    hintLevel = 0;
+    if (player) player.holdHint(false);
+  }
+
+  /** Pinta la pista que toque; mirando jugadas anteriores se esconde, porque
+   *  las casillas son las de la posición actual. */
+  function showHint() {
+    if (!player) return;
+    player.holdHint(hintLevel > 0 && player.atLive, hintLevel > 1);
   }
 
   function onMovePlayed(move, game) {
@@ -206,7 +218,6 @@ window.Play = (function () {
     if (window.Store.settings.sound) window.Sound.wrong();
     if (mode.allowRetry) {
       setStatus("No es esa. Prueba otra vez.", "bad");
-      startHints();   // sigue siendo su turno: la cuenta empieza de nuevo
       return;
     }
     setStatus("Fallo. Podrás repasarlo al terminar.", "bad");
@@ -290,6 +301,7 @@ window.Play = (function () {
     if (mode.noteAt) els.info.textContent = mode.noteAt(player.puzzle, viewAt - 1);
     if (mode.guided) board.setGuide(null);
     showPlan(viewAt === line.length - 1);
+    showHint();
     // Sin el atributo `disabled`: iOS trata los toques rápidos sobre un botón
     // desactivado como un doble toque sobre contenido "muerto" e intenta
     // ampliar, y como el zoom está bloqueado el tablero da un tirón arriba y

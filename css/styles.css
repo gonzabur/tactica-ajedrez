@@ -1191,14 +1191,20 @@ html.standalone, html.standalone body { height: 100vh; }
   box-shadow: inset 0 0 0 5px #6ba8e8;
 }
 
-/* Pista de la jugada entera: el destino parpadea a contratiempo del origen,
-   para que se lea "de aquí… a aquí" y no dos casillas sueltas. */
-.mark.flash-hint-to { z-index: 6; }
-.mark.flash-hint-to::after {
+/* Pista fija (aprender una apertura): parpadea sin parar hasta que se hace
+   la jugada. El destino va a contratiempo del origen, para que se lea "de
+   aquí… a aquí" y no dos casillas sueltas. */
+.mark.hint-hold { z-index: 6; }
+.mark.hint-hold::after {
   content: ""; position: absolute; inset: 0;
   border-radius: 4px;
-  animation: pulse .7s ease-out .35s both;
   box-shadow: inset 0 0 0 5px #6ba8e8;
+  animation: hint-blink 1s ease-in-out infinite;
+}
+.mark.hint-hold.to::after { animation-delay: -.5s; }
+@keyframes hint-blink {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
 }
 
 @keyframes pulse {
@@ -1234,6 +1240,7 @@ html.standalone, html.standalone body { height: 100vh; }
   }
   .mark.flash-right::after, .mark.flash-wrong::after { transform: scale(1); }
   .mark.mate::after { animation: none; opacity: 1; }
+  .mark.hint-hold::after { animation: none; opacity: 1; }
 }
 
 /* --- móvil en horizontal: tablero a la izquierda, el resto a la derecha -----

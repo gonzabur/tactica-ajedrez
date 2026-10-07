@@ -3,4 +3,4 @@
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
 window.APP_VERSION = "1.1.14";
-window.APP_COMMIT = "95c6d23";
+window.APP_COMMIT = "4b5a8f5";

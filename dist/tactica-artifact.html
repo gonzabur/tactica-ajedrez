@@ -75645,6 +75645,8 @@ window.Openings = (function () {
       autoNext: false,   // se para al acabar: ahí se enseña el nombre de la variante
       notes: true,       // y el plan que sigue, en la caja de las notas
       get hintAfter() { return stage ? HINT_AFTER[stage - 1] : null; },
+      // al repetir una fallada también se dice qué apertura es, como en la primera pasada
+      get turnText() { return current ? current.opening.name : ""; },
       get playingNote() {
         return stage ? "De memoria. Si te atascas, se irá marcando la jugada." : "";
       },
@@ -75918,7 +75920,7 @@ window.Play = (function () {
     if (ply !== hintPly) { hintPly = ply; startHints(); }
     if (!mode.guided) {
       // de memoria: se avisa de que toca, sin decir qué
-      if (mode.hintAfter) setStatus("Te toca", "turn " + (player.puzzle.playerFirst ? "w" : "b"));
+      if (mode.hintAfter) setStatus(mode.turnText || "Te toca", "turn " + (player.puzzle.playerFirst ? "w" : "b"));
       return;
     }
     var uci = player.puzzle.moves[ply];
@@ -77261,6 +77263,6 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
 window.APP_VERSION = "1.1.16";
-window.APP_COMMIT = "36f3734";
+window.APP_COMMIT = "af83d0b";
 
 </script>

@@ -373,6 +373,8 @@ window.Openings = (function () {
       autoNext: false,   // se para al acabar: ahí se enseña el nombre de la variante
       notes: true,       // y el plan que sigue, en la caja de las notas
       get hintAfter() { return stage ? HINT_AFTER[stage - 1] : null; },
+      // al repetir una fallada también se dice qué apertura es, como en la primera pasada
+      get turnText() { return current ? current.opening.name : ""; },
       get playingNote() {
         return stage ? "De memoria. Si te atascas, se irá marcando la jugada." : "";
       },

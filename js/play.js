@@ -168,7 +168,7 @@ window.Play = (function () {
     if (ply !== hintPly) { hintPly = ply; startHints(); }
     if (!mode.guided) {
       // de memoria: se avisa de que toca, sin decir qué
-      if (mode.hintAfter) setStatus("Te toca", "turn " + (player.puzzle.playerFirst ? "w" : "b"));
+      if (mode.hintAfter) setStatus(mode.turnText || "Te toca", "turn " + (player.puzzle.playerFirst ? "w" : "b"));
       return;
     }
     var uci = player.puzzle.moves[ply];

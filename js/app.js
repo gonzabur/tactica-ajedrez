@@ -134,8 +134,14 @@ window.App = (function () {
     var next = O.nextToLearn();
     var today = O.learnedToday();
 
+    var pending = O.pendingReview();
     html += '<div class="mode-grid">' +
-      (due
+      (pending
+        ? modeCard("#/aperturas/repaso", "Seguir repasando",
+            "Lo dejaste a medias: " + (pending.items.length === 1
+              ? "queda 1 línea." : "quedan " + pending.items.length + " líneas."),
+            "review", "")
+        : due
         ? modeCard("#/aperturas/repaso", "Repasar",
             due + (due === 1 ? " línea toca hoy" : " líneas tocan hoy") + ", todas mezcladas.",
             "review", "")

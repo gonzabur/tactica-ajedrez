@@ -166,6 +166,23 @@
       assert("Aperturas: el repaso libre sale aunque no toque y no cambia la caja",
         p0 && JSON.stringify(window.Store.state.openings.cards[ital.lines[0].id]) === antes);
 
+      // repaso dejado a medias: se retoma con lo que quedaba, fallos incluidos
+      O.markLearned(ital.lines[1].id);
+      O.markLearned(ital.lines[2].id);
+      var r1 = O.review();
+      var q1 = r1.next();
+      r1.result({ puzzle: q1, clean: false });   // fallada: ya no "toca hoy"
+      var q2 = r1.next();                        // y se sale con esta a medias
+      var r2 = O.review();
+      var quedan = O.pendingReview().items.map(function (it) { return it.line.id; });
+      assert("Aperturas: al salir del repaso se retoma donde estaba",
+        quedan.length === 2 && quedan[0] === q2.line.id && quedan[1] === q1.line.id &&
+        r2.next().line.id === q2.line.id && r2.hud()[1].value === "0/1", quedan.join(","));
+      r2.result({ puzzle: q2, clean: true });
+      r2.result({ puzzle: r2.next(), clean: true });
+      assert("Aperturas: terminado el repaso no queda nada a medias",
+        r2.next() === null && !O.pendingReview());
+
       assert("Aperturas: avisa de que falta respuesta a 1.d4",
         O.gaps().join(" ").indexOf("1.d4") >= 0, O.gaps().join(" "));
 

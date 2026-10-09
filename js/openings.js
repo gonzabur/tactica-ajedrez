@@ -273,6 +273,16 @@ window.Openings = (function () {
     };
   }
 
+  /** Repaso de hoy dejado a medias, con las líneas que le quedan; o null. */
+  function pendingReview() {
+    var s = st().review;
+    if (!s || s.day !== today()) return null;
+    var items = s.ids.map(findLine).filter(function (it) { return it && card(it.line.id); });
+    return items.length
+      ? { free: s.free, items: items, graded: s.graded, firstTry: s.firstTry, total: s.total }
+      : null;
+  }
+
   /**
    * Repasar: todas las líneas a las que hoy toca, mezcladas. Cuenta solo el
    * primer intento de cada una; si se falla, vuelve a salir al final de la
@@ -282,13 +292,27 @@ window.Openings = (function () {
     // Sin nada pendiente, repaso libre: todas las aprendidas. Ahí acertar no
     // adelanta el calendario (sería hacer trampas al espaciado), pero fallar
     // sí cuenta: la línea vuelve a la caja 0.
-    var free = !dueItems().length;
-    var queue = shuffle(free ? learnedItems() : dueItems());
-    var total = queue.length;
+    // Si hoy se dejó un repaso a medias (flecha de volver, app cerrada), se
+    // sigue donde estaba: con solo mirar qué toca hoy se perderían las líneas
+    // falladas (ya apuntadas para mañana) y el repaso libre empezaría de cero.
+    var s = pendingReview();
+    var free = s ? s.free : !dueItems().length;
+    var queue = s ? s.items : shuffle(free ? learnedItems() : dueItems());
+    var total = s ? s.total : queue.length;
     var graded = {};
-    var firstTry = 0;
+    (s ? s.graded : []).forEach(function (id) { graded[id] = true; });
+    var firstTry = s ? s.firstTry : 0;
     var current = null;
     var playing = false;   // ¿hay una línea a medias?
+
+    function remember() {
+      var ids = (playing ? [current] : []).concat(queue).map(function (it) { return it.line.id; });
+      if (ids.length) {
+        st().review = { day: today(), free: free, ids: ids, graded: Object.keys(graded),
+                        firstTry: firstTry, total: total };
+      } else delete st().review;
+      window.Store.save();
+    }
 
     return {
       id: "openings-review",
@@ -305,6 +329,7 @@ window.Openings = (function () {
       next: function () {
         current = queue.shift() || null;
         playing = !!current;
+        remember();
         return current ? toPuzzle(current) : null;
       },
 
@@ -319,6 +344,7 @@ window.Openings = (function () {
           if (res.clean) firstTry++;
         }
         if (!res.clean) queue.push(current);   // otra vuelta antes de terminar
+        remember();
         return { text: res.clean ? "¡Correcto!" : "Volverá a salir al final" };
       },
 
@@ -348,6 +374,7 @@ window.Openings = (function () {
     toggle: toggle,
     status: status,
     dueItems: dueItems,
+    pendingReview: pendingReview,
     learnedItems: learnedItems,
     nextToLearn: nextToLearn,
     learnedToday: learnedToday,

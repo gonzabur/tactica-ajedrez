@@ -53,8 +53,11 @@ se mira una vez.
    siguiente, y se recomiendan tres al día como mucho.
 3. **Repasar.** Lo aprendido vuelve mezclado y ya sin guía, con repetición
    espaciada: una línea hecha bien a la primera tarda cada vez más en volver
-   (1, 3, 7, 21 y 60 días); un fallo la devuelve al principio y además la hace
-   salir otra vez al final de la sesión. Al terminar cada línea se muestra el
+   (1, 2, 4, 7 y 10 días); un fallo la devuelve al principio y además la hace
+   salir otra vez al final de la sesión, con tres intentos de memoria y pistas
+   como al aprenderla. Una barra marca cómo va cada línea del repaso y, al
+   terminar, un resumen da el porcentaje de aciertos de cada una y cuándo
+   vuelve. Al terminar cada línea se muestra el
    nombre de la variante y el plan que sigue. Si hoy no toca nada, hay repaso
    libre de todo lo aprendido.
 

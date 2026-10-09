@@ -352,6 +352,7 @@ window.Play = (function () {
   // --- marcador y controles ---------------------------------------------
 
   function renderHud() {
+    if (mode.hudHtml) { els.hud.innerHTML = mode.hudHtml(); return; }
     var items = mode.hud ? mode.hud() : [];
     if (mode.timed) {
       items = [{ label: "Tiempo", value: formatTime(secondsLeft), danger: secondsLeft <= 15 }]
@@ -524,6 +525,7 @@ window.Play = (function () {
         '<dl class="summary">' + rows.map(function (r) {
           return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
         }).join("") + "</dl>" +
+        (summary.detailHtml || "") +
         '<div class="gameover-actions">' +
           '<button class="btn primary wide" data-act="again">Otra vez</button>' +
           (summary.review
@@ -539,6 +541,9 @@ window.Play = (function () {
     });
     els.gameover.querySelector('[data-act="home"]').addEventListener("click", function () {
       window.location.hash = "#/";
+    });
+    Array.prototype.forEach.call(els.gameover.querySelectorAll("[data-go]"), function (el) {
+      el.addEventListener("click", function () { window.location.hash = el.getAttribute("data-go"); });
     });
     var revisar = els.gameover.querySelector('[data-act="review"]');
     if (revisar) {

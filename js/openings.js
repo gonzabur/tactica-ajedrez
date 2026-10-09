@@ -8,7 +8,7 @@
  * a la primera alarga el intervalo; un fallo lo devuelve al principio.
  */
 window.Openings = (function () {
-  var INTERVALS = [1, 3, 7, 21, 60];   // días hasta el siguiente repaso, por caja
+  var INTERVALS = [1, 2, 4, 7, 10];   // días hasta el siguiente repaso, por caja
   var NEW_PER_DAY = 3;                  // líneas nuevas recomendadas al día
   var START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -100,6 +100,25 @@ window.Openings = (function () {
     c.box = clean ? Math.min(c.box + 1, INTERVALS.length - 1) : 0;
     c.due = daysFromToday(clean ? INTERVALS[c.box] : 1);
     window.Store.save();
+  }
+
+  /** Historial de la línea: cuenta solo el primer intento de cada repaso. */
+  function tally(lineId, clean) {
+    var c = card(lineId);
+    if (!c) return;
+    c.tries = (c.tries || 0) + 1;
+    if (clean) c.ok = (c.ok || 0) + 1;
+    window.Store.save();
+  }
+
+  /** "mañana", "en 4 días"… para la fecha en que vuelve una línea. */
+  function whenText(due) {
+    var n = Math.round((new Date(due) - new Date(today())) / 864e5);
+    return n <= 0 ? "hoy" : n === 1 ? "mañana" : "en " + n + " días";
+  }
+
+  function esc(text) {
+    return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;");
   }
 
   /** Progreso de una apertura: líneas aprendidas y dominadas (caja 3+). */
@@ -276,10 +295,10 @@ window.Openings = (function () {
   /** Repaso de hoy dejado a medias, con las líneas que le quedan; o null. */
   function pendingReview() {
     var s = st().review;
-    if (!s || s.day !== today()) return null;
+    if (!s || s.day !== today() || !s.order) return null;
     var items = s.ids.map(findLine).filter(function (it) { return it && card(it.line.id); });
     return items.length
-      ? { free: s.free, items: items, graded: s.graded, firstTry: s.firstTry, total: s.total }
+      ? { free: s.free, items: items, order: s.order, marks: s.marks }
       : null;
   }
 
@@ -298,18 +317,49 @@ window.Openings = (function () {
     var s = pendingReview();
     var free = s ? s.free : !dueItems().length;
     var queue = s ? s.items : shuffle(free ? learnedItems() : dueItems());
-    var total = s ? s.total : queue.length;
-    var graded = {};
-    (s ? s.graded : []).forEach(function (id) { graded[id] = true; });
-    var firstTry = s ? s.firstTry : 0;
+    // order: las líneas del repaso, en su orden de salida (un segmento de la
+    // barra cada una). marks: cómo salió el primer intento, "ok" o "ko".
+    var order = s ? s.order : queue.map(function (it) { return it.line.id; });
+    var marks = s ? s.marks : {};
+    var total = order.length;
     var current = null;
     var playing = false;   // ¿hay una línea a medias?
+    // Una fallada vuelve al final como al aprenderla: ATTEMPTS pasadas de
+    // memoria con pistas. stage es la pasada (0 = repaso normal); repeat, que
+    // la siguiente pasada es de la misma línea.
+    var stage = 0;
+    var repeat = false;
+
+    function firstTry() {
+      return order.filter(function (id) { return marks[id] === "ok"; }).length;
+    }
+
+    /** Resumen final: cada línea con su resultado, su historial y cuándo vuelve. */
+    function detail() {
+      var groups = [];
+      order.map(findLine).filter(Boolean).forEach(function (it) {
+        var g = groups.filter(function (x) { return x.op === it.opening; })[0];
+        if (!g) groups.push(g = { op: it.opening, rows: [] });
+        var c = card(it.line.id) || {};
+        var ok = marks[it.line.id] === "ok";
+        var inner = '<i class="' + (ok ? "ok" : "ko") + '">' + (ok ? "✓" : "✗") + "</i>" +
+          "<span><b>" + esc(it.line.name) + "</b><small>" +
+            (c.tries ? (c.ok || 0) + " de " + c.tries + " a la primera · " +
+              Math.round((c.ok || 0) / c.tries * 100) + " %" : "") + "</small></span>" +
+          "<em>" + (c.due ? whenText(c.due) : "") + (ok ? "" : " ›") + "</em>";
+        // las falladas se pueden tocar para volver a ver la línea
+        g.rows.push(ok ? '<div class="res-row">' + inner + "</div>"
+          : '<button class="res-row" data-go="#/aperturas/linea/' + it.line.id + '">' + inner + "</button>");
+      });
+      return groups.length ? '<div class="res-list">' + groups.map(function (g) {
+        return "<h3>" + esc(g.op.name) + "</h3>" + g.rows.join("");
+      }).join("") + "</div>" : "";
+    }
 
     function remember() {
-      var ids = (playing ? [current] : []).concat(queue).map(function (it) { return it.line.id; });
+      var ids = (playing || repeat ? [current] : []).concat(queue).map(function (it) { return it.line.id; });
       if (ids.length) {
-        st().review = { day: today(), free: free, ids: ids, graded: Object.keys(graded),
-                        firstTry: firstTry, total: total };
+        st().review = { day: today(), free: free, ids: ids, order: order, marks: marks };
       } else delete st().review;
       window.Store.save();
     }
@@ -322,44 +372,76 @@ window.Openings = (function () {
       allowHint: true,
       autoNext: false,   // se para al acabar: ahí se enseña el nombre de la variante
       notes: true,       // y el plan que sigue, en la caja de las notas
+      get hintAfter() { return stage ? HINT_AFTER[stage - 1] : null; },
+      get playingNote() {
+        return stage ? "De memoria. Si te atascas, se irá marcando la jugada." : "";
+      },
       lives: 0,
       timed: 0,
       affectsRating: false,
 
       next: function () {
-        current = queue.shift() || null;
+        if (repeat) {
+          repeat = false;
+        } else {
+          current = queue.shift() || null;
+          stage = current && marks[current.line.id] === "ko" ? 1 : 0;
+        }
         playing = !!current;
         remember();
         return current ? toPuzzle(current) : null;
       },
 
-      loadText: function (puzzle) { return puzzle.opening.name; },
+      loadText: function (puzzle) {
+        return stage ? "De memoria: intento " + stage + " de " + ATTEMPTS : puzzle.opening.name;
+      },
 
       result: function (res) {
         var id = res.puzzle.line.id;
+        var first = !marks[id];
         playing = false;
-        if (!graded[id]) {
-          graded[id] = true;
+        if (stage) {   // repitiendo una fallada: aquí equivocarse ya no cuenta
+          var last = stage === ATTEMPTS;
+          if (!last) { stage++; repeat = true; }
+          remember();
+          return last ? { text: "¡Hecha! Vuelve " + whenText(card(id).due) }
+            : { text: "Bien. Otra vez, de memoria", nextLabel: "Intento " + stage + " de " + ATTEMPTS };
+        }
+        if (first) {
+          marks[id] = res.clean ? "ok" : "ko";
+          tally(id, res.clean);
           if (!free || !res.clean) grade(id, res.clean);
-          if (res.clean) firstTry++;
         }
         if (!res.clean) queue.push(current);   // otra vuelta antes de terminar
         remember();
-        return { text: res.clean ? "¡Correcto!" : "Volverá a salir al final" };
+        // en el repaso libre acertar no mueve la fecha: se dice cuándo le toca
+        return { text: res.clean
+          ? "¡Correcto! " + (free && first ? "Le toca " : "Vuelve ") + whenText(card(id).due)
+          : "Volverá a salir al final. Después, mañana" };
       },
 
-      hud: function () {
-        return [
-          { label: "Quedan", value: String(queue.length + (playing ? 1 : 0)) },
-          { label: "A la primera", value: firstTry + "/" + Object.keys(graded).length }
-        ];
+      /** Barra con un segmento por línea, en vez de casillas con números. */
+      hudHtml: function () {
+        var cur = playing || repeat ? current.line.id : null;
+        var again = queue.concat(cur ? [current] : []).filter(function (it) {
+          return marks[it.line.id] === "ko";
+        }).length;
+        var done = Object.keys(marks).length + (cur && !marks[cur] ? 1 : 0);
+        return '<div class="hud-review"><div class="seg-bar">' +
+          order.map(function (id) {
+            return '<i class="' + (id === cur ? "now" : marks[id] || "") + '"></i>';
+          }).join("") + "</div>" +
+          '<div class="seg-info"><span>' +
+            (cur && stage ? "De memoria " + stage + "/" + ATTEMPTS : "Línea " + Math.max(done, 1) + " de " + total) +
+          "</span><span>" + (again ? again + " por repetir" : "") + "</span></div></div>";
       },
 
       finish: function () {
         return {
           headline: total ? "Repaso terminado" : "Nada que repasar hoy",
-          score: firstTry,
-          rows: total ? [["Líneas repasadas", total], ["A la primera", firstTry]] : []
+          score: firstTry(),
+          rows: total ? [["Líneas repasadas", total], ["A la primera", firstTry()]] : [],
+          detailHtml: detail()
         };
       }
     };

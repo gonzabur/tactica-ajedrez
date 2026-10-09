@@ -159,12 +159,16 @@
 
       // nada pendiente -> repaso libre: acertar no adelanta el calendario
       O.grade(ital.lines[0].id, true);
-      var antes = JSON.stringify(window.Store.state.openings.cards[ital.lines[0].id]);
+      var cita = function () {
+        var k = window.Store.state.openings.cards[ital.lines[0].id];
+        return k.box + " " + k.due;
+      };
+      var antes = cita();
       var libre = O.review();
       var p0 = libre.next();
       libre.result({ puzzle: p0, clean: true });
       assert("Aperturas: el repaso libre sale aunque no toque y no cambia la caja",
-        p0 && JSON.stringify(window.Store.state.openings.cards[ital.lines[0].id]) === antes);
+        p0 && cita() === antes);
 
       // repaso dejado a medias: se retoma con lo que quedaba, fallos incluidos
       O.markLearned(ital.lines[1].id);
@@ -177,11 +181,33 @@
       var quedan = O.pendingReview().items.map(function (it) { return it.line.id; });
       assert("Aperturas: al salir del repaso se retoma donde estaba",
         quedan.length === 2 && quedan[0] === q2.line.id && quedan[1] === q1.line.id &&
-        r2.next().line.id === q2.line.id && r2.hud()[1].value === "0/1", quedan.join(","));
-      r2.result({ puzzle: q2, clean: true });
-      r2.result({ puzzle: r2.next(), clean: true });
+        r2.next().line.id === q2.line.id &&
+        r2.hudHtml().indexOf("Línea 2 de 2") > 0 && r2.hudHtml().indexOf("1 por repetir") > 0,
+        quedan.join(","));
+      var t2 = r2.result({ puzzle: q2, clean: true }).text;
+      assert("Aperturas: al acertar se dice cuándo vuelve (caja 1 = 2 días)",
+        t2 === "¡Correcto! Vuelve en 2 días", t2);
+      // la fallada vuelve con tres pasadas de memoria; equivocarse ahí no la reencola
+      var pr = r2.next(), pasos = [];
+      for (var k = 0; k < 3; k++) {
+        pasos.push(r2.hintAfter.join("/") + (r2.hudHtml().indexOf("De memoria " + (k + 1) + "/3") > 0 ? "" : "?"));
+        var out = r2.result({ puzzle: pr, clean: false });
+        if (k < 2) r2.next();
+      }
+      assert("Aperturas: una fallada se repite con tres intentos de memoria (5/10, 10/15, 15/20)",
+        pr.line.id === q1.line.id && pasos.join(" ") === "5/10 10/15 15/20" &&
+        out.text === "¡Hecha! Vuelve mañana", pasos.join(" ") + " " + out.text);
+      var c1 = window.Store.state.openings.cards[q1.line.id];
+      var c2 = window.Store.state.openings.cards[q2.line.id];
       assert("Aperturas: terminado el repaso no queda nada a medias",
         r2.next() === null && !O.pendingReview());
+      assert("Aperturas: el historial cuenta solo el primer intento de cada repaso",
+        c1.tries === 1 && !c1.ok && c2.tries === 1 && c2.ok === 1, JSON.stringify([c1, c2]));
+      var fin = r2.finish();
+      assert("Aperturas: el resumen lista cada línea con su % y deja abrir las falladas",
+        fin.score === 1 && fin.detailHtml.indexOf("1 de 1 a la primera · 100 %") > 0 &&
+        fin.detailHtml.indexOf('data-go="#/aperturas/linea/' + q1.line.id + '"') > 0 &&
+        fin.detailHtml.indexOf("0 de 1 a la primera · 0 %") > 0);
 
       assert("Aperturas: avisa de que falta respuesta a 1.d4",
         O.gaps().join(" ").indexOf("1.d4") >= 0, O.gaps().join(" "));

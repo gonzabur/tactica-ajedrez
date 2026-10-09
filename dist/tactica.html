@@ -768,6 +768,24 @@ html.standalone, html.standalone body { height: 100vh; }
   border-radius: 11px;
   padding: 6px 9px;
 }
+/* Repaso de aperturas: una barra con un segmento por línea */
+.hud-review {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 7px;
+  background: var(--surface);
+  border-radius: 11px;
+  padding: 9px 10px 7px;
+}
+.seg-bar { display: flex; gap: 3px; }
+.seg-bar i { flex: 1; min-width: 0; height: 8px; border-radius: 3px; background: var(--line); }
+.seg-bar .ok { background: var(--accent); }
+.seg-bar .ko { background: var(--gold); }
+.seg-bar .now { background: var(--text); }
+.seg-info {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 11.5px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
 .hud-label {
   font-size: 10.5px; color: var(--text-faint);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -1029,6 +1047,26 @@ html.standalone, html.standalone body { height: 100vh; }
 }
 .summary dt { color: var(--text-dim); text-align: left; }
 .summary dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
+/* Resumen del repaso: línea a línea, por apertura */
+.res-list {
+  max-height: 34vh; overflow-y: auto;
+  margin: -6px 0 18px;
+  text-align: left;
+}
+.res-list h3 { margin: 12px 0 2px; font-size: 12px; font-weight: 600; color: var(--text-faint); }
+.res-row {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 7px 0;
+  background: none; border: 0; border-top: 1px solid var(--line);
+  color: inherit; font: inherit; text-align: left;
+}
+.res-row i { font-style: normal; font-weight: 700; width: 14px; text-align: center; }
+.res-row i.ok { color: var(--accent-strong); }
+.res-row i.ko { color: var(--danger); }
+.res-row span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.res-row b { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.res-row small { font-size: 11.5px; color: var(--text-faint); }
+.res-row em { font-style: normal; font-size: 12px; color: var(--text-dim); white-space: nowrap; }
 .gameover-actions { display: flex; flex-direction: column; gap: 9px; }
 
 @keyframes fade { from { opacity: 0; } }
@@ -75254,7 +75292,7 @@ window.Modes = (function () {
  * a la primera alarga el intervalo; un fallo lo devuelve al principio.
  */
 window.Openings = (function () {
-  var INTERVALS = [1, 3, 7, 21, 60];   // días hasta el siguiente repaso, por caja
+  var INTERVALS = [1, 2, 4, 7, 10];   // días hasta el siguiente repaso, por caja
   var NEW_PER_DAY = 3;                  // líneas nuevas recomendadas al día
   var START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -75346,6 +75384,25 @@ window.Openings = (function () {
     c.box = clean ? Math.min(c.box + 1, INTERVALS.length - 1) : 0;
     c.due = daysFromToday(clean ? INTERVALS[c.box] : 1);
     window.Store.save();
+  }
+
+  /** Historial de la línea: cuenta solo el primer intento de cada repaso. */
+  function tally(lineId, clean) {
+    var c = card(lineId);
+    if (!c) return;
+    c.tries = (c.tries || 0) + 1;
+    if (clean) c.ok = (c.ok || 0) + 1;
+    window.Store.save();
+  }
+
+  /** "mañana", "en 4 días"… para la fecha en que vuelve una línea. */
+  function whenText(due) {
+    var n = Math.round((new Date(due) - new Date(today())) / 864e5);
+    return n <= 0 ? "hoy" : n === 1 ? "mañana" : "en " + n + " días";
+  }
+
+  function esc(text) {
+    return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;");
   }
 
   /** Progreso de una apertura: líneas aprendidas y dominadas (caja 3+). */
@@ -75522,10 +75579,10 @@ window.Openings = (function () {
   /** Repaso de hoy dejado a medias, con las líneas que le quedan; o null. */
   function pendingReview() {
     var s = st().review;
-    if (!s || s.day !== today()) return null;
+    if (!s || s.day !== today() || !s.order) return null;
     var items = s.ids.map(findLine).filter(function (it) { return it && card(it.line.id); });
     return items.length
-      ? { free: s.free, items: items, graded: s.graded, firstTry: s.firstTry, total: s.total }
+      ? { free: s.free, items: items, order: s.order, marks: s.marks }
       : null;
   }
 
@@ -75544,18 +75601,49 @@ window.Openings = (function () {
     var s = pendingReview();
     var free = s ? s.free : !dueItems().length;
     var queue = s ? s.items : shuffle(free ? learnedItems() : dueItems());
-    var total = s ? s.total : queue.length;
-    var graded = {};
-    (s ? s.graded : []).forEach(function (id) { graded[id] = true; });
-    var firstTry = s ? s.firstTry : 0;
+    // order: las líneas del repaso, en su orden de salida (un segmento de la
+    // barra cada una). marks: cómo salió el primer intento, "ok" o "ko".
+    var order = s ? s.order : queue.map(function (it) { return it.line.id; });
+    var marks = s ? s.marks : {};
+    var total = order.length;
     var current = null;
     var playing = false;   // ¿hay una línea a medias?
+    // Una fallada vuelve al final como al aprenderla: ATTEMPTS pasadas de
+    // memoria con pistas. stage es la pasada (0 = repaso normal); repeat, que
+    // la siguiente pasada es de la misma línea.
+    var stage = 0;
+    var repeat = false;
+
+    function firstTry() {
+      return order.filter(function (id) { return marks[id] === "ok"; }).length;
+    }
+
+    /** Resumen final: cada línea con su resultado, su historial y cuándo vuelve. */
+    function detail() {
+      var groups = [];
+      order.map(findLine).filter(Boolean).forEach(function (it) {
+        var g = groups.filter(function (x) { return x.op === it.opening; })[0];
+        if (!g) groups.push(g = { op: it.opening, rows: [] });
+        var c = card(it.line.id) || {};
+        var ok = marks[it.line.id] === "ok";
+        var inner = '<i class="' + (ok ? "ok" : "ko") + '">' + (ok ? "✓" : "✗") + "</i>" +
+          "<span><b>" + esc(it.line.name) + "</b><small>" +
+            (c.tries ? (c.ok || 0) + " de " + c.tries + " a la primera · " +
+              Math.round((c.ok || 0) / c.tries * 100) + " %" : "") + "</small></span>" +
+          "<em>" + (c.due ? whenText(c.due) : "") + (ok ? "" : " ›") + "</em>";
+        // las falladas se pueden tocar para volver a ver la línea
+        g.rows.push(ok ? '<div class="res-row">' + inner + "</div>"
+          : '<button class="res-row" data-go="#/aperturas/linea/' + it.line.id + '">' + inner + "</button>");
+      });
+      return groups.length ? '<div class="res-list">' + groups.map(function (g) {
+        return "<h3>" + esc(g.op.name) + "</h3>" + g.rows.join("");
+      }).join("") + "</div>" : "";
+    }
 
     function remember() {
-      var ids = (playing ? [current] : []).concat(queue).map(function (it) { return it.line.id; });
+      var ids = (playing || repeat ? [current] : []).concat(queue).map(function (it) { return it.line.id; });
       if (ids.length) {
-        st().review = { day: today(), free: free, ids: ids, graded: Object.keys(graded),
-                        firstTry: firstTry, total: total };
+        st().review = { day: today(), free: free, ids: ids, order: order, marks: marks };
       } else delete st().review;
       window.Store.save();
     }
@@ -75568,44 +75656,76 @@ window.Openings = (function () {
       allowHint: true,
       autoNext: false,   // se para al acabar: ahí se enseña el nombre de la variante
       notes: true,       // y el plan que sigue, en la caja de las notas
+      get hintAfter() { return stage ? HINT_AFTER[stage - 1] : null; },
+      get playingNote() {
+        return stage ? "De memoria. Si te atascas, se irá marcando la jugada." : "";
+      },
       lives: 0,
       timed: 0,
       affectsRating: false,
 
       next: function () {
-        current = queue.shift() || null;
+        if (repeat) {
+          repeat = false;
+        } else {
+          current = queue.shift() || null;
+          stage = current && marks[current.line.id] === "ko" ? 1 : 0;
+        }
         playing = !!current;
         remember();
         return current ? toPuzzle(current) : null;
       },
 
-      loadText: function (puzzle) { return puzzle.opening.name; },
+      loadText: function (puzzle) {
+        return stage ? "De memoria: intento " + stage + " de " + ATTEMPTS : puzzle.opening.name;
+      },
 
       result: function (res) {
         var id = res.puzzle.line.id;
+        var first = !marks[id];
         playing = false;
-        if (!graded[id]) {
-          graded[id] = true;
+        if (stage) {   // repitiendo una fallada: aquí equivocarse ya no cuenta
+          var last = stage === ATTEMPTS;
+          if (!last) { stage++; repeat = true; }
+          remember();
+          return last ? { text: "¡Hecha! Vuelve " + whenText(card(id).due) }
+            : { text: "Bien. Otra vez, de memoria", nextLabel: "Intento " + stage + " de " + ATTEMPTS };
+        }
+        if (first) {
+          marks[id] = res.clean ? "ok" : "ko";
+          tally(id, res.clean);
           if (!free || !res.clean) grade(id, res.clean);
-          if (res.clean) firstTry++;
         }
         if (!res.clean) queue.push(current);   // otra vuelta antes de terminar
         remember();
-        return { text: res.clean ? "¡Correcto!" : "Volverá a salir al final" };
+        // en el repaso libre acertar no mueve la fecha: se dice cuándo le toca
+        return { text: res.clean
+          ? "¡Correcto! " + (free && first ? "Le toca " : "Vuelve ") + whenText(card(id).due)
+          : "Volverá a salir al final. Después, mañana" };
       },
 
-      hud: function () {
-        return [
-          { label: "Quedan", value: String(queue.length + (playing ? 1 : 0)) },
-          { label: "A la primera", value: firstTry + "/" + Object.keys(graded).length }
-        ];
+      /** Barra con un segmento por línea, en vez de casillas con números. */
+      hudHtml: function () {
+        var cur = playing || repeat ? current.line.id : null;
+        var again = queue.concat(cur ? [current] : []).filter(function (it) {
+          return marks[it.line.id] === "ko";
+        }).length;
+        var done = Object.keys(marks).length + (cur && !marks[cur] ? 1 : 0);
+        return '<div class="hud-review"><div class="seg-bar">' +
+          order.map(function (id) {
+            return '<i class="' + (id === cur ? "now" : marks[id] || "") + '"></i>';
+          }).join("") + "</div>" +
+          '<div class="seg-info"><span>' +
+            (cur && stage ? "De memoria " + stage + "/" + ATTEMPTS : "Línea " + Math.max(done, 1) + " de " + total) +
+          "</span><span>" + (again ? again + " por repetir" : "") + "</span></div></div>";
       },
 
       finish: function () {
         return {
           headline: total ? "Repaso terminado" : "Nada que repasar hoy",
-          score: firstTry,
-          rows: total ? [["Líneas repasadas", total], ["A la primera", firstTry]] : []
+          score: firstTry(),
+          rows: total ? [["Líneas repasadas", total], ["A la primera", firstTry()]] : [],
+          detailHtml: detail()
         };
       }
     };
@@ -75994,6 +76114,7 @@ window.Play = (function () {
   // --- marcador y controles ---------------------------------------------
 
   function renderHud() {
+    if (mode.hudHtml) { els.hud.innerHTML = mode.hudHtml(); return; }
     var items = mode.hud ? mode.hud() : [];
     if (mode.timed) {
       items = [{ label: "Tiempo", value: formatTime(secondsLeft), danger: secondsLeft <= 15 }]
@@ -76166,6 +76287,7 @@ window.Play = (function () {
         '<dl class="summary">' + rows.map(function (r) {
           return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
         }).join("") + "</dl>" +
+        (summary.detailHtml || "") +
         '<div class="gameover-actions">' +
           '<button class="btn primary wide" data-act="again">Otra vez</button>' +
           (summary.review
@@ -76181,6 +76303,9 @@ window.Play = (function () {
     });
     els.gameover.querySelector('[data-act="home"]').addEventListener("click", function () {
       window.location.hash = "#/";
+    });
+    Array.prototype.forEach.call(els.gameover.querySelectorAll("[data-go]"), function (el) {
+      el.addEventListener("click", function () { window.location.hash = el.getAttribute("data-go"); });
     });
     var revisar = els.gameover.querySelector('[data-act="review"]');
     if (revisar) {
@@ -77147,8 +77272,8 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * Versión mostrada en Ajustes. La rellena tools/publicar.sh: sube el último
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
-window.APP_VERSION = "1.1.15";
-window.APP_COMMIT = "3800f28";
+window.APP_VERSION = "1.1.16";
+window.APP_COMMIT = "36f3734";
 
 </script>
 </body>

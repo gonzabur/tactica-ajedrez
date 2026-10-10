@@ -768,7 +768,13 @@ html.standalone, html.standalone body { height: 100vh; }
 .seg-bar i { flex: 1; min-width: 0; height: 8px; border-radius: 3px; background: var(--line); }
 .seg-bar .ok { background: var(--accent); }
 .seg-bar .ko { background: var(--gold); }
-.seg-bar .now { background: var(--text); }
+.seg-bar .re { background: var(--icon-blue); }   /* fallada y ya repetida */
+/* La línea en curso conserva su color; lo que late es un aro a su alrededor. */
+.seg-bar .now {
+  outline: 1.5px solid var(--text); outline-offset: 1px;
+  animation: seg-pulse 1.2s ease-in-out infinite;
+}
+@keyframes seg-pulse { 50% { outline-color: transparent; } }
 .seg-info {
   display: flex; justify-content: space-between; gap: 8px;
   font-size: 11.5px; color: var(--text-dim);
@@ -75590,7 +75596,8 @@ window.Openings = (function () {
     var free = s ? s.free : !dueItems().length;
     var queue = s ? s.items : shuffle(free ? learnedItems() : dueItems());
     // order: las líneas del repaso, en su orden de salida (un segmento de la
-    // barra cada una). marks: cómo salió el primer intento, "ok" o "ko".
+    // barra cada una). marks: cómo salió el primer intento, "ok" o "ko"; una
+    // "ko" pasa a "re" cuando se ha repetido con sus intentos de memoria.
     var order = s ? s.order : queue.map(function (it) { return it.line.id; });
     var marks = s ? s.marks : {};
     var total = order.length;
@@ -75676,7 +75683,8 @@ window.Openings = (function () {
         playing = false;
         if (stage) {   // repitiendo una fallada: aquí equivocarse ya no cuenta
           var last = stage === ATTEMPTS;
-          if (!last) { stage++; repeat = true; }
+          if (last) marks[id] = "re";   // fallada, pero ya repetida
+          else { stage++; repeat = true; }
           remember();
           return last ? { text: "¡Hecha! Vuelve " + whenText(card(id).due) }
             : { text: "Bien. Otra vez, de memoria", nextLabel: "Intento " + stage + " de " + ATTEMPTS };
@@ -75703,7 +75711,7 @@ window.Openings = (function () {
         var done = Object.keys(marks).length + (cur && !marks[cur] ? 1 : 0);
         return '<div class="hud-review"><div class="seg-bar">' +
           order.map(function (id) {
-            return '<i class="' + (id === cur ? "now" : marks[id] || "") + '"></i>';
+            return '<i class="' + (marks[id] || "") + (id === cur ? " now" : "") + '"></i>';
           }).join("") + "</div>" +
           '<div class="seg-info"><span>' +
             (cur && stage ? "De memoria " + stage + "/" + ATTEMPTS : "Línea " + Math.max(done, 1) + " de " + total) +
@@ -77262,7 +77270,7 @@ document.addEventListener("DOMContentLoaded", window.App.boot);
  * Versión mostrada en Ajustes. La rellena tools/publicar.sh: sube el último
  * número en cada publicación y apunta el commit (en un commit aparte).
  */
-window.APP_VERSION = "1.1.16";
-window.APP_COMMIT = "af83d0b";
+window.APP_VERSION = "1.1.17";
+window.APP_COMMIT = "da7549d";
 
 </script>

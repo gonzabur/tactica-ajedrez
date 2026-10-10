@@ -318,7 +318,8 @@ window.Openings = (function () {
     var free = s ? s.free : !dueItems().length;
     var queue = s ? s.items : shuffle(free ? learnedItems() : dueItems());
     // order: las líneas del repaso, en su orden de salida (un segmento de la
-    // barra cada una). marks: cómo salió el primer intento, "ok" o "ko".
+    // barra cada una). marks: cómo salió el primer intento, "ok" o "ko"; una
+    // "ko" pasa a "re" cuando se ha repetido con sus intentos de memoria.
     var order = s ? s.order : queue.map(function (it) { return it.line.id; });
     var marks = s ? s.marks : {};
     var total = order.length;
@@ -404,7 +405,8 @@ window.Openings = (function () {
         playing = false;
         if (stage) {   // repitiendo una fallada: aquí equivocarse ya no cuenta
           var last = stage === ATTEMPTS;
-          if (!last) { stage++; repeat = true; }
+          if (last) marks[id] = "re";   // fallada, pero ya repetida
+          else { stage++; repeat = true; }
           remember();
           return last ? { text: "¡Hecha! Vuelve " + whenText(card(id).due) }
             : { text: "Bien. Otra vez, de memoria", nextLabel: "Intento " + stage + " de " + ATTEMPTS };
@@ -431,7 +433,7 @@ window.Openings = (function () {
         var done = Object.keys(marks).length + (cur && !marks[cur] ? 1 : 0);
         return '<div class="hud-review"><div class="seg-bar">' +
           order.map(function (id) {
-            return '<i class="' + (id === cur ? "now" : marks[id] || "") + '"></i>';
+            return '<i class="' + (marks[id] || "") + (id === cur ? " now" : "") + '"></i>';
           }).join("") + "</div>" +
           '<div class="seg-info"><span>' +
             (cur && stage ? "De memoria " + stage + "/" + ATTEMPTS : "Línea " + Math.max(done, 1) + " de " + total) +

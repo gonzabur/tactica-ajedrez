@@ -748,7 +748,13 @@ html.standalone, html.standalone body { height: 100vh; }
 .seg-bar i { flex: 1; min-width: 0; height: 8px; border-radius: 3px; background: var(--line); }
 .seg-bar .ok { background: var(--accent); }
 .seg-bar .ko { background: var(--gold); }
-.seg-bar .now { background: var(--text); }
+.seg-bar .re { background: var(--icon-blue); }   /* fallada y ya repetida */
+/* La línea en curso conserva su color; lo que late es un aro a su alrededor. */
+.seg-bar .now {
+  outline: 1.5px solid var(--text); outline-offset: 1px;
+  animation: seg-pulse 1.2s ease-in-out infinite;
+}
+@keyframes seg-pulse { 50% { outline-color: transparent; } }
 .seg-info {
   display: flex; justify-content: space-between; gap: 8px;
   font-size: 11.5px; color: var(--text-dim);

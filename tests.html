@@ -196,7 +196,8 @@
       }
       assert("Aperturas: una fallada se repite con tres intentos de memoria (5/10, 10/15, 15/20)",
         pr.line.id === q1.line.id && pasos.join(" ") === "5/10 10/15 15/20" &&
-        out.text === "¡Hecha! Vuelve mañana", pasos.join(" ") + " " + out.text);
+        out.text === "¡Hecha! Vuelve mañana" &&
+        r2.hudHtml().indexOf('<i class="re"></i>') > 0, pasos.join(" ") + " " + out.text + r2.hudHtml());
       var c1 = window.Store.state.openings.cards[q1.line.id];
       var c2 = window.Store.state.openings.cards[q2.line.id];
       assert("Aperturas: terminado el repaso no queda nada a medias",
